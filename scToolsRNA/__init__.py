@@ -9,4 +9,4 @@ from .preprocess import *
 from .readwrite import *
 from .sparse import *
 from .trajectories import *
-from .heatmaps import *
+from .colormaps import *
