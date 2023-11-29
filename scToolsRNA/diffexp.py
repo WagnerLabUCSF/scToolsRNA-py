@@ -16,7 +16,7 @@ from adjustText import adjust_text
 
 
 
-def get_pydeseq2_sample_contrasts(adata, cluster_obs, sample_obs, condition_obs, condition_list, csv_path=None):
+def get_pydeseq2_sample_contrasts(adata, cluster_obs, sample_obs, condition_obs, condition_list, key_added='', csv_path=None):
 
     # Generate a pyDESeq2 results dataframe that reports cluster-level
     # pairwise comparisons (contrasts) between conditions over samples 
@@ -71,7 +71,7 @@ def get_pydeseq2_sample_contrasts(adata, cluster_obs, sample_obs, condition_obs,
             pyDESeq_results[cluster].to_csv(csv_path + '/' + 'pyDESeq_results_' + str(cluster) + '.csv')
 
     # Store results in adata.uns
-    adata.uns['pyDESeq2'] = pyDESeq_results
+    adata.uns['pyDESeq2'+'-'+key_added] = pyDESeq_results
     return adata
 
 
