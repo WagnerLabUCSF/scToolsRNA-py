@@ -104,7 +104,6 @@ def plot_pydeseq2_results_clustermap(adata, gene_list, cluster_obs, values_to_pl
     cg.fig.subplots_adjust(right=0.7)
     cg.ax_cbar.set_position((0.8, .7, .01, .2))
 
-
     return cg
 
 
