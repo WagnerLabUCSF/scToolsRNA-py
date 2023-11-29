@@ -75,7 +75,7 @@ def get_pydeseq2_sample_contrasts(adata, cluster_obs, sample_obs, condition_obs,
     return adata
 
 
-def plot_pydeseq2_results_clustermap(adata, gene_list, cluster_obs, values_to_plot='log2FoldChange', metric='seuclidean', method='complete', key=None, cmap='vlag', labelfontsize=12):
+def plot_pydeseq2_results_clustermap(adata, gene_list, cluster_obs, values_to_plot='log2FoldChange', metric='seuclidean', method='complete', key=None, cmap='vlag'):
     
     # Generate a dataframe to hold pydeseq2 results
     results_df = pd.DataFrame(index=gene_list, columns=adata.obs[cluster_obs].unique())
@@ -93,8 +93,7 @@ def plot_pydeseq2_results_clustermap(adata, gene_list, cluster_obs, values_to_pl
     cg = sns.clustermap(results_df.T,
                       metric=metric, method=method,
                       cmap=cmap, vmin=-3, vmax=3,
-                      figsize=(25,5), dendrogram_ratio=0.1, linewidths=0.5,
-                      annot_kws={"size": labelfontsize})
+                      figsize=(25,5), dendrogram_ratio=0.1, linewidths=0.5)
                       #cbar_kws={'label': 'Log2 Fold Change \n (RA vs Control)'})
 
     # Formatting
@@ -147,12 +146,16 @@ def plot_pydeseq2_cluster_sensitivities(adata, cluster_obs, sample_obs, conditio
         power_df['nDEGs'][cluster] = np.log10(len(list(degs_df[cluster].index)))
         power_df['nCells'][cluster] = np.sum(adata.obs[cluster_obs]==cluster)
 
+    
+    # Compute the relative proportions of each cell type cluster
+    power_df['cluster_size'] = list(power_df['nCells']/np.sum(power_df['nCells'])*100*10)
+
     # Generate scatterplot
     sns.set_style("white", {'axes.grid' : True})
     fig, ax = plt.subplots()
-    sns.scatterplot(x = list(ratios_df['Ratio']), y = list(power_df['nDEGs']), s=list(power_df['nCells']/2))
+    sns.scatterplot(x = list(ratios_df['Ratio']), y = list(power_df['nDEGs']), s=power_df['cluster_size'])
 
-    # Add and adjust point labels
+     # Add and adjust point labels
     point_labels = [plt.annotate(label, (ratios_df['Ratio'][n], power_df['nDEGs'][n])) for n, label in enumerate(power_df.index)]
     adjust_text(point_labels, arrowprops=dict(arrowstyle="-", color='#1f77b4', lw=0.5))
 
@@ -163,6 +166,7 @@ def plot_pydeseq2_cluster_sensitivities(adata, cluster_obs, sample_obs, conditio
 
     if return_dfs:
         return ratios_df, power_df
+
 
 
 def get_deg_table(adata, ngenes_csv=100, ngenes_disp=20):
