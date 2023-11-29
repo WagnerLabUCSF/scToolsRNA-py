@@ -75,14 +75,17 @@ def get_pydeseq2_sample_contrasts(adata, cluster_obs, sample_obs, condition_obs,
     return adata
 
 
-def plot_pydeseq2_results_clustermap(adata, gene_list, cluster_obs, values_to_plot='log2FoldChange', metric='seuclidean', method='complete', cmap='vlag'):
+def plot_pydeseq2_results_clustermap(adata, gene_list, cluster_obs, key=None, values_to_plot='log2FoldChange', metric='seuclidean', method='complete', cmap='vlag'):
     
     # Generate a dataframe to hold pydeseq2 results
     results_df = pd.DataFrame(index=gene_list, columns=adata.obs[cluster_obs].unique())
     for cluster in adata.obs[cluster_obs].unique():
         for g in gene_list:
             # Go into pydeseq2 results and extract values for each gene in each cluster
-            results_df.loc[g][cluster] = adata.uns['pyDESeq2'][cluster].loc[g][values_to_plot]
+            if key is None:
+                results_df.loc[g][cluster] = adata.uns['pyDESeq2'][cluster].loc[g][values_to_plot]
+            else:
+                results_df.loc[g][cluster] = adata.uns[key][cluster].loc[g][values_to_plot]
     results_df = results_df.astype(float).fillna(0)
 
     # Generate a Seaborn clustermap
@@ -104,7 +107,7 @@ def plot_pydeseq2_results_clustermap(adata, gene_list, cluster_obs, values_to_pl
     return cg
 
 
-def plot_pydeseq2_cluster_sensitivities(adata, cluster_obs, sample_obs, condition_obs, condition_list, log2fc_threshold = 1, adj_pvalue_threshold = 0.05, return_dfs=False):
+def plot_pydeseq2_cluster_sensitivities(adata, cluster_obs, sample_obs, condition_obs, condition_list, log2fc_threshold = 1, adj_pvalue_threshold = 0.05, key=None, return_dfs=False):
     
     # Compute normalized ratios of # cells in each cluster (total RA vs total control)
     #
@@ -125,8 +128,13 @@ def plot_pydeseq2_cluster_sensitivities(adata, cluster_obs, sample_obs, conditio
     ratios_df['Ratio'] = np.log2(ratios_df[condition_1] / ratios_df[condition_2])
     ratios_df.sort_values(cluster_obs, ascending = True)
 
+    # Import pyDESeq results
+    if key is None:
+        degs_df = adata.uns['pyDESeq2'].copy()
+    else:
+        degs_df = adata.uns[key].copy()
+
     # Get nDEGs and nCells for each cell type cluster
-    degs_df = adata.uns['pyDESeq2'].copy()
     power_df = pd.DataFrame(index=adata.obs[cluster_obs].unique(), columns=['nDEGs','nCells'])
     for cluster in adata.obs[cluster_obs].unique():
         degs_df[cluster] = degs_df[cluster].sort_values('log2FoldChange', ascending = False)
