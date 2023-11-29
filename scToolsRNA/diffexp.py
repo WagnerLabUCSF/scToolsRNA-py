@@ -75,7 +75,7 @@ def get_pydeseq2_sample_contrasts(adata, cluster_obs, sample_obs, condition_obs,
     return adata
 
 
-def plot_pydeseq2_results_clustermap(adata, gene_list, cluster_obs, key=None, values_to_plot='log2FoldChange', metric='seuclidean', method='complete', cmap='vlag'):
+def plot_pydeseq2_results_clustermap(adata, gene_list, cluster_obs, values_to_plot='log2FoldChange', metric='seuclidean', method='complete', key=None, cmap='vlag', labelfontsize=12):
     
     # Generate a dataframe to hold pydeseq2 results
     results_df = pd.DataFrame(index=gene_list, columns=adata.obs[cluster_obs].unique())
@@ -93,7 +93,8 @@ def plot_pydeseq2_results_clustermap(adata, gene_list, cluster_obs, key=None, va
     cg = sns.clustermap(results_df.T,
                       metric=metric, method=method,
                       cmap=cmap, vmin=-3, vmax=3,
-                      figsize=(25,5), dendrogram_ratio=0.1, linewidths=0.5)
+                      figsize=(25,5), dendrogram_ratio=0.1, linewidths=0.5,
+                      annot_kws={"size": labelfontsize})
                       #cbar_kws={'label': 'Log2 Fold Change \n (RA vs Control)'})
 
     # Formatting
@@ -103,6 +104,7 @@ def plot_pydeseq2_results_clustermap(adata, gene_list, cluster_obs, key=None, va
     cg.ax_heatmap.axvline(x=cg.data.shape[1], color='k', linewidth=1)
     cg.fig.subplots_adjust(right=0.7)
     cg.ax_cbar.set_position((0.8, .7, .01, .2))
+
 
     return cg
 
