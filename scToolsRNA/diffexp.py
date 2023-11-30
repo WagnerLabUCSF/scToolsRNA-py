@@ -142,7 +142,7 @@ def plot_pydeseq2_cluster_sensitivities(adata, cluster_obs, sample_obs, conditio
         flag_pv = degs_df[cluster]['padj']<adj_pvalue_threshold
         flag = np.logical_and(flag_fc, flag_pv)
         degs_df[cluster] = degs_df[cluster][flag]
-        power_df['nDEGs'][cluster] = np.log10(len(list(degs_df[cluster].index)))
+        power_df['nDEGs'][cluster] = np.log1p(len(list(degs_df[cluster].index)))
         power_df['nCells'][cluster] = np.sum(adata.obs[cluster_obs]==cluster)
 
     
