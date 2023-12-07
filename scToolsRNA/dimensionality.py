@@ -193,7 +193,7 @@ def get_significant_pcs(adata, n_iter = 3, n_comps_test = 200, threshold_method=
     for j in range(n_iter):
         #print('Iteration', j+1, '/', n_iter, end='\r')
         sys.stdout.write('\rIteration %i / %i' % (j+1, n_iter)); sys.stdout.flush()
-        np.random.seed(seed=j)
+        #np.random.seed(seed=j)
         adata_tmp_rand = adata_tmp.copy()
         
         if sparse:
@@ -203,6 +203,7 @@ def get_significant_pcs(adata, n_iter = 3, n_comps_test = 200, threshold_method=
         
         # randomly permute each row of the counts matrix
         for c in range(mat.shape[1]):
+            np.random.seed(seed=j+c)
             mat[:,c] = mat[np.random.permutation(mat.shape[0]),c]
         
         if sparse:        
