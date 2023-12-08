@@ -168,20 +168,46 @@ def plot_pydeseq2_cluster_sensitivities(adata, cluster_obs, sample_obs, conditio
 
 
 
-def get_deg_table(adata, ngenes_csv=100, ngenes_disp=20):
+def get_deg_table(adata, ngenes_csv=100, ngenes_disp=20, thresh_pv=0.05, thresh_logfc=1, filt_hv=False, return_dict=False):
     
     # Uses results from rank_genes_groups
     
-    # Format a table with DEG names, log2 fold changes, corrected p-values, and export to csv
+    # Convert the results dictionary to a dataframe with DEG names, log2 fold changes, adjusted p-values
     deg = adata.uns['rank_genes_groups']
-    groups = deg['names'].dtype.names
-    df_names_pvals = pd.DataFrame({groups+'_'+key: deg[key][groups] for groups in groups for key in ['names','logfoldchanges','pvals']}).head(ngenes_csv)
-    df_names_pvals.to_csv('DEGTable.csv')
+    groups = list(deg['names'].dtype.names)
+    df = pd.DataFrame({groups+'_'+key: deg[key][groups] for groups in groups for key in ['names','logfoldchanges','pvals_adj']}).head(ngenes_csv)
+    df.to_csv('rank_genes_groups_DEGTable.csv')
 
-    # Print DEGs to screen
+
+    # Get list of highly variable genes, if requested
+    if filt_hv:
+      hv_genes = adata[1,adata.var['highly_variable']].var_names
+    
+    # Get list of markers for each group that pass filtering criteria
+    markers=[]   # will be a list of lists 
+    for g in groups:
+        flag_log2fc = df[g+'_logfoldchanges'] > thresh_logfc
+        flag_pv = df[g+'_pvals_adj'] < thresh_pv
+        flag = flag_log2fc & flag_pv
+        if filt_hv:
+          flag_variable = df[g+'_names'].isin(hv_genes)
+          flag = flag & flag_variable
+        markers.append(list(df[g+'_names'][flag]))
+
+    # Print to screen
     pd.options.display.max_columns = None
-    df = pd.DataFrame({groups : deg[key][groups] for groups in groups for key in ['names']}).head(ngenes_disp)
+    dc = dict(zip(groups,markers))
+    df = pd.DataFrame.from_dict(dc, orient='index').T
+    df = df.head(ngenes_disp).fillna(value='')
 
-    return df
+    # return marker sets as a dictionary, if requested
+    if return_dict:
+      return dc
+    else:
+      return df
+    
+    
+    
+    
 
 
