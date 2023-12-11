@@ -80,18 +80,17 @@ def runningquantile(x, y, p, nBins):
     return xOut, yOut
 
 
-def get_variable_genes(E, base_ix=[], min_vscore_pctl=85, min_counts=3, min_cells=3, show_FF_plot=False, show_vscore_plot=False, return_stats=False, plot_title=''):
+def get_variable_genes(adata, norm_counts_per_cell=1e6, min_vscore_pctl=85, min_counts=3, min_cells=3, show_FF_plot=False, show_vscore_plot=False):
 
     ''' 
-    Filter genes by expression level and variability
-    Return list of filtered gene indices
+    Identifies highly variable genes
+    Requires a layer of adata that has been processed by total count normalization (e.g. tpm_nolog)
     '''
 
-    if len(base_ix) == 0:
-        base_ix = np.arange(E.shape[0])
-
+    E = adata.layers['tpm_nolog']
+    
     # get variability statistics    
-    Vscores, CV_eff, CV_input, gene_ix, mu_gene, FF_gene, a, b = get_vscores(E[base_ix, :])
+    Vscores, CV_eff, CV_input, gene_ix, mu_gene, FF_gene, a, b = get_vscores(E)
 
     # index genes with positive vscores     
     ix2 = Vscores > 0
@@ -107,9 +106,8 @@ def get_variable_genes(E, base_ix=[], min_vscore_pctl=85, min_counts=3, min_cell
         yTh = (1 + a) * (1 + b) + b * xTh
         plt.figure(figsize=(6, 6))
         plt.scatter(np.log10(mu_gene[ix2]), np.log10(FF_gene[ix2]), c=np.array(['grey']), alpha=0.3, edgecolors=None, s=4)
-        plt.scatter(np.log10(mu_gene[ix2])[ix], np.log10(FF_gene[ix2])[ix], c=np.log10(Vscores[ix2])[ix], cmap='jet', alpha=0.3, edgecolors=None, s=4)
+        plt.scatter(np.log10(mu_gene[ix2])[ix], np.log10(FF_gene[ix2])[ix], c=np.log10(Vscores[ix2])[ix], cmap='viridis', alpha=0.3, edgecolors=None, s=4)
         plt.plot(np.log10(xTh), np.log10(yTh))
-        plt.title(plot_title)
         plt.xlabel('Mean Transcripts Per Cell (log10)')
         plt.ylabel('Gene Fano Factor (log10)')
         plt.show()
@@ -117,24 +115,33 @@ def get_variable_genes(E, base_ix=[], min_vscore_pctl=85, min_counts=3, min_cell
     if show_vscore_plot:
         plt.figure(figsize=(6, 6))
         plt.scatter(np.log10(mu_gene[ix2]), np.log10(Vscores[ix2]), c=np.array(['grey']), alpha=0.3, edgecolors=None, s=4)
-        plt.scatter(np.log10(mu_gene[ix2])[ix], np.log10(Vscores[ix2])[ix], c=np.log10(FF_gene[ix2])[ix], cmap='jet', alpha=0.3, edgecolors=None, s=4)
-        plt.title(plot_title)
+        plt.scatter(np.log10(mu_gene[ix2])[ix], np.log10(Vscores[ix2])[ix], c=np.log10(FF_gene[ix2])[ix], cmap='viridis', alpha=0.3, edgecolors=None, s=4)
         plt.xlabel('Mean Transcripts Per Cell (log10)')
         plt.ylabel('Vscores (log10)')
         plt.show()
 
-    if return_stats:
-        return {'gene_ix': gene_ix[ix2][ix],
-                'vscores': Vscores[ix2][ix], 
-                'mu_gene': mu_gene[ix2][ix],
-                'FF_gene': FF_gene[ix2][ix],
-                'CV_eff': CV_eff,
-                'CV_input': CV_input,
-                'a': a,
-                'b': b,
-                'min_vscore': min_vscore}
-    else:
-        return gene_ix[ix2][ix]
+    # save vscore stats to dictionary in adata.uns
+    stats_dict = {'gene_ix': gene_ix[ix2][ix],
+                  'vscores': Vscores[ix2][ix], 
+                  'mu_gene': mu_gene[ix2][ix],
+                  'FF_gene': FF_gene[ix2][ix],
+                  'CV_eff': CV_eff,
+                  'CV_input': CV_input,
+                  'a': a,
+                  'b': b,
+                  'min_vscore': min_vscore}
+
+    adata.uns['gene_vscore_stats'] = stats_dict
+     
+    # save highly variable gene list to adata.var
+    if 'highly_variable' in adata.var.keys():
+        adata.var['highly_variable_scanpy'] = adata.var['highly_variable'].copy()
+    hv_genes = adata.var_names[gene_ix[ix2][ix]]
+    adata.var['highly_variable'] = False
+    adata.var.loc[hv_genes, 'highly_variable'] = True
+
+    return adata
+
 
 
 def get_covarying_genes(E, gene_ix, minimum_correlation=0.2, show_hist=False, sample_name=''):
