@@ -8,11 +8,11 @@ import scipy
 
 
 def sparse_corr(X):
-    N = X.shape[0]
-    C=((X.T*X -(sum(X).T*sum(X)/N))/(N-1)).todense()
-    V=np.sqrt(np.mat(np.diag(C)).T*np.mat(np.diag(C)))
-    X_corr = np.divide(C,V+1e-119)
-    return X_corr
+  N = X.shape[0]
+  C=((X.T*X -(sum(X).T*sum(X)/N))/(N-1)).todense()
+  V=np.sqrt(np.mat(np.diag(C)).T*np.mat(np.diag(C)))
+  X_corr = np.divide(C,V+1e-119)
+  return X_corr
 
 
 def convert_to_sparse(X):
