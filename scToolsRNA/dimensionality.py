@@ -120,25 +120,23 @@ def get_variable_genes(adata, norm_counts_per_cell=1e6, min_vscore_pctl=85, min_
         plt.ylabel('Vscores (log10)')
         plt.show()
 
-    # save vscore stats to dictionary in adata.uns
-    stats_dict = {'gene_ix': gene_ix[ix2][ix],
-                  'vscores': Vscores[ix2][ix], 
-                  'mu_gene': mu_gene[ix2][ix],
-                  'FF_gene': FF_gene[ix2][ix],
-                  'CV_eff': CV_eff,
-                  'CV_input': CV_input,
-                  'a': a,
-                  'b': b,
-                  'min_vscore': min_vscore}
+    # save vscore stats adata
+    adata.var['vscore'] = Vscores
+    adata.var['mu_gene'] = mu_gene,
+    adata.var['ff_gene'] = FF_gene,
+    adata.uns['vscore_stats'] = {'CV_eff': CV_eff,
+                                 'CV_input': CV_input,
+                                 'a': a,
+                                 'b': b,
+                                 'min_vscore': min_vscore}
 
-    adata.uns['gene_vscore_stats'] = stats_dict
-     
-    # save highly variable gene list to adata.var
+    # save highly variable gene flags to adata.var
     if 'highly_variable' in adata.var.keys():
         adata.var['highly_variable_scanpy'] = adata.var['highly_variable'].copy()
     hv_genes = adata.var_names[gene_ix[ix2][ix]]
     adata.var['highly_variable'] = False
     adata.var.loc[hv_genes, 'highly_variable'] = True
+    
 
     return adata
 
@@ -171,7 +169,7 @@ def get_covarying_genes(E, gene_ix, minimum_correlation=0.2, show_hist=False, sa
   
     return gene_ix[ix_keep]
 
-    
+
 
 
 # IDENTIFY SIGNIFICANT PCA DIMENSIONS
