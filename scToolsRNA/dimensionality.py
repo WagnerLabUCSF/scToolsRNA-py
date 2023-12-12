@@ -92,10 +92,8 @@ def get_variable_genes(adata, norm_counts_per_cell=1e6, min_vscore_pctl=85, min_
     # get variability statistics    
     Vscores, CV_eff, CV_input, gene_ix, mu_gene, FF_gene, a, b = get_vscores(E)
 
-    # index genes with positive vscores     
-    ix2 = Vscores > 0
-
     # index genes based on vscore percentile
+    ix2 = Vscores > 0
     min_vscore = np.percentile(Vscores[ix2], min_vscore_pctl)    
     ix = (((E[:, gene_ix[ix2]] >= min_counts).sum(0).A.squeeze()>= min_cells) & (Vscores[ix2] >= min_vscore))
 
@@ -120,23 +118,28 @@ def get_variable_genes(adata, norm_counts_per_cell=1e6, min_vscore_pctl=85, min_
         plt.ylabel('Vscores (log10)')
         plt.show()
 
-    # save vscore stats adata
-    adata.var['vscore'] = Vscores
-    adata.var['mu_gene'] = mu_gene,
-    adata.var['ff_gene'] = FF_gene,
-    adata.uns['vscore_stats'] = {'CV_eff': CV_eff,
-                                 'CV_input': CV_input,
-                                 'a': a,
-                                 'b': b,
-                                 'min_vscore': min_vscore}
-
-    # save highly variable gene flags to adata.var
+    # export results to adata
+    
+    # save highly variable gene flags
     if 'highly_variable' in adata.var.keys():
         adata.var['highly_variable_scanpy'] = adata.var['highly_variable'].copy()
     hv_genes = adata.var_names[gene_ix[ix2][ix]]
     adata.var['highly_variable'] = False
     adata.var.loc[hv_genes, 'highly_variable'] = True
     
+    # save vscore stats 
+    adata.var['vscore'] = np.nan
+    adata.var.loc[adata.var_names[gene_ix], 'vscore'] = Vscores
+    adata.var['mu_gene'] = np.nan
+    adata.var.loc[adata.var_names[gene_ix], 'mu_gene'] = mu_gene
+    adata.var['ff_gene'] = np.nan
+    adata.var.loc[adata.var_names[gene_ix], 'ff_gene'] = FF_gene
+    adata.uns['vscore_stats'] = {'hv_genes': hv_genes,
+                                 'CV_eff': CV_eff,
+                                 'CV_input': CV_input,
+                                 'a': a,
+                                 'b': b,
+                                 'min_vscore': min_vscore}
 
     return adata
 
