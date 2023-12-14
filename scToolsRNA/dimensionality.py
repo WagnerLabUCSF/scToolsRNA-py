@@ -178,7 +178,7 @@ def get_covarying_genes(E, gene_ix, minimum_correlation=0.2, show_hist=False, sa
 # IDENTIFY SIGNIFICANT PCA DIMENSIONS
 
 
-def get_significant_pcs(adata, n_iter = 3, n_comps_test = 200, threshold_method='95', show_plots=True, zero_center=True):
+def get_significant_pcs(adata, n_iter = 3, n_comps_test = 200, threshold_method='95', show_plots=True, zero_center=True, verbose=True):
 
     # Subset adata to highly variable genes x cells (counts matrix only)
     adata_tmp = sc.AnnData(adata[:,adata.var.highly_variable].X)
@@ -189,19 +189,18 @@ def get_significant_pcs(adata, n_iter = 3, n_comps_test = 200, threshold_method=
       sparse=True
 
     # Get eigenvalues from pca on data matrix
-    print('Performing PCA on data matrix')
+    if verbose print('Performing PCA on data matrix')
     sc.pp.pca(adata_tmp, n_comps=n_comps_test, zero_center=zero_center)
     eig = adata_tmp.uns['pca']['variance']
 
     # Get eigenvalues from pca on randomly permuted data matrices
-    print('Performing PCA on randomized data matrices')
+    if verbose print('Performing PCA on randomized data matrices')
     eig_rand = np.zeros(shape=(n_iter, n_comps_test))
     eig_rand_max = []
     nPCs_above_rand = []
     for j in range(n_iter):
-        #print('Iteration', j+1, '/', n_iter, end='\r')
-        sys.stdout.write('\rIteration %i / %i' % (j+1, n_iter)); sys.stdout.flush()
-        #np.random.seed(seed=j)
+
+        if verbose  sys.stdout.write('\rIteration %i / %i' % (j+1, n_iter)); sys.stdout.flush()
         adata_tmp_rand = adata_tmp.copy()
         
         if sparse:
@@ -275,9 +274,10 @@ def get_significant_pcs(adata, n_iter = 3, n_comps_test = 200, threshold_method=
         plt.show()
 
     # Print summary stats to screen
-    print(method_string)
-    print('Eigenvalue Threshold =', np.round(eig_thresh, 2))
-    print('# Significant PCs =', n_sig_PCs)
+    if verbose: 
+        print(method_string)
+        print('Eigenvalue Threshold =', np.round(eig_thresh, 2))
+        print('# Significant PCs =', n_sig_PCs)
 
     adata.uns['n_sig_PCs'] = n_sig_PCs
 
