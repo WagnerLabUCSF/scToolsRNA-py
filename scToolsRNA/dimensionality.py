@@ -281,6 +281,7 @@ def get_significant_pcs(adata, n_iter = 3, n_comps_test = 200, threshold_method=
         print('# Significant PCs =', n_sig_PCs)
 
     adata.uns['n_sig_PCs'] = n_sig_PCs
+    adata.uns['n_sig_PCs_trials'] = nPCs_above_rand
 
     return adata
 
