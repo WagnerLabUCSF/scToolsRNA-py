@@ -144,7 +144,6 @@ def get_variable_genes(adata, norm_counts_per_cell=1e6, min_vscore_pctl=85, min_
     return adata
 
 
-
 def get_covarying_genes(E, gene_ix, minimum_correlation=0.2, show_hist=False, sample_name=''):
 
     # subset input matrix to gene_ix
@@ -189,18 +188,20 @@ def get_significant_pcs(adata, n_iter = 3, n_comps_test = 200, threshold_method=
       sparse=True
 
     # Get eigenvalues from pca on data matrix
-    if verbose print('Performing PCA on data matrix')
+    if verbose: 
+        print('Performing PCA on data matrix')
     sc.pp.pca(adata_tmp, n_comps=n_comps_test, zero_center=zero_center)
     eig = adata_tmp.uns['pca']['variance']
 
     # Get eigenvalues from pca on randomly permuted data matrices
-    if verbose print('Performing PCA on randomized data matrices')
+    if verbose: 
+        print('Performing PCA on randomized data matrices')
     eig_rand = np.zeros(shape=(n_iter, n_comps_test))
     eig_rand_max = []
     nPCs_above_rand = []
     for j in range(n_iter):
 
-        if verbose  sys.stdout.write('\rIteration %i / %i' % (j+1, n_iter)); sys.stdout.flush()
+        if verbose: sys.stdout.write('\rIteration %i / %i' % (j+1, n_iter)); sys.stdout.flush()
         adata_tmp_rand = adata_tmp.copy()
         
         if sparse:
@@ -285,4 +286,6 @@ def get_significant_pcs(adata, n_iter = 3, n_comps_test = 200, threshold_method=
 
 
 
+
+# DETERMINE OVERALL DIMENSIONALITY 
 
