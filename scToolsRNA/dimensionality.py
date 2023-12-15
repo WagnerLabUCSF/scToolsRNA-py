@@ -104,7 +104,7 @@ def get_variable_genes(adata, norm_counts_per_cell=1e6, min_vscore_pctl=85, min_
         yTh = (1 + a) * (1 + b) + b * xTh
         plt.figure(figsize=(6, 6))
         plt.scatter(np.log10(mu_gene[ix2]), np.log10(FF_gene[ix2]), c=np.array(['grey']), alpha=0.3, edgecolors=None, s=4)
-        plt.scatter(np.log10(mu_gene[ix2])[ix], np.log10(FF_gene[ix2])[ix], c=np.log10(Vscores[ix2])[ix], cmap='viridis', alpha=0.3, edgecolors=None, s=4)
+        plt.scatter(np.log10(mu_gene[ix2])[ix], np.log10(FF_gene[ix2])[ix], c=np.log10(Vscores[ix2])[ix], cmap=np.array(['blue']), alpha=0.3, edgecolors=None, s=4)
         plt.plot(np.log10(xTh), np.log10(yTh))
         plt.xlabel('Mean Transcripts Per Cell (log10)')
         plt.ylabel('Gene Fano Factor (log10)')
@@ -113,7 +113,7 @@ def get_variable_genes(adata, norm_counts_per_cell=1e6, min_vscore_pctl=85, min_
     if show_vscore_plot:
         plt.figure(figsize=(6, 6))
         plt.scatter(np.log10(mu_gene[ix2]), np.log10(Vscores[ix2]), c=np.array(['grey']), alpha=0.3, edgecolors=None, s=4)
-        plt.scatter(np.log10(mu_gene[ix2])[ix], np.log10(Vscores[ix2])[ix], c=np.log10(FF_gene[ix2])[ix], cmap='viridis', alpha=0.3, edgecolors=None, s=4)
+        plt.scatter(np.log10(mu_gene[ix2])[ix], np.log10(Vscores[ix2])[ix], c=np.log10(FF_gene[ix2])[ix], cmap=np.array(['blue']), alpha=0.3, edgecolors=None, s=4)
         plt.xlabel('Mean Transcripts Per Cell (log10)')
         plt.ylabel('Vscores (log10)')
         plt.show()
@@ -122,7 +122,7 @@ def get_variable_genes(adata, norm_counts_per_cell=1e6, min_vscore_pctl=85, min_
     
     # save highly variable gene flags
     if 'highly_variable' in adata.var.keys():
-        adata.var['highly_variable_scanpy'] = adata.var['highly_variable'].copy()
+        adata.var['highly_variable_prev'] = adata.var['highly_variable'].copy()
     hv_genes = adata.var_names[gene_ix[ix2][ix]]
     adata.var['highly_variable'] = False
     adata.var.loc[hv_genes, 'highly_variable'] = True
@@ -143,6 +143,58 @@ def get_variable_genes(adata, norm_counts_per_cell=1e6, min_vscore_pctl=85, min_
 
     return adata
 
+
+
+def plot_gene_ff(adata, gene_ix=None, color=None):
+
+  if gene_ix == None:
+    gene_ix = adata.var['highly_variable']
+  
+  if color == None:
+    color = np.array(['blue'])
+
+  mu_gene = adata.var['mu_gene']
+  ff_gene = adata.var['ff_gene']
+  a = adata.uns['vscore_stats']['a']
+  b = adata.uns['vscore_stats']['b']
+
+  x_min = 0.5 * np.min(mu_gene)
+  x_max = 2 * np.max(mu_gene)
+  xTh = x_min * np.exp(np.log(x_max / x_min) * np.linspace(0, 1, 100))
+  yTh = (1 + a) * (1 + b) + b * xTh
+  plt.figure(figsize=(6, 6))
+  plt.scatter(np.log10(mu_gene), np.log10(ff_gene), c=np.array(['grey']), alpha=0.3, edgecolors=None, s=4)
+  plt.scatter(np.log10(mu_gene)[gene_ix], np.log10(ff_gene)[gene_ix], c=color, alpha=0.3, edgecolors=None, s=4)
+
+  plt.plot(np.log10(xTh), np.log10(yTh))
+  plt.xlabel('Mean Transcripts Per Cell (log10)')
+  plt.ylabel('Gene Fano Factor (log10)')
+  plt.show()
+
+
+
+def plot_gene_vscores(adata, gene_ix=None, color=None):
+
+  if gene_ix == None:
+    gene_ix = adata.var['highly_variable']
+  
+  if color == None:
+    color = np.array(['blue'])
+  
+  mu_gene = adata.var['mu_gene']
+  vscores_gene = adata.var['vscore']
+  a = adata.uns['vscore_stats']['a']
+  b = adata.uns['vscore_stats']['b']
+
+  plt.figure(figsize=(6, 6))
+  plt.scatter(np.log10(mu_gene), np.log10(vscores_gene), c=np.array(['grey']), alpha=0.3, edgecolors=None, s=4)
+  plt.scatter(np.log10(mu_gene)[gene_ix], np.log10(vscores_gene)[gene_ix], c=color, alpha=0.3, edgecolors=None, s=4)
+
+  plt.xlabel('Mean Transcripts Per Cell (log10)')
+  plt.ylabel('Gene Vscores (log10)')
+  plt.show()
+
+ 
 
 def get_covarying_genes(E, gene_ix, minimum_correlation=0.2, show_hist=False, sample_name=''):
 
@@ -288,5 +340,40 @@ def get_significant_pcs(adata, n_iter = 3, n_comps_test = 200, threshold_method=
 
 
 
-# DETERMINE OVERALL DIMENSIONALITY 
+# ESTIMATE DIMENSIONALITY 
+
+
+def run_dim_tests(adata, dim_test_n_comps_test=300, dim_test_n_trials=5, dim_test_vpctl=None):
+
+  if dim_test_vpctl is None:
+    dim_test_vpctl = [99, 97.5, 95, 92.5, 90, 87.5, 85, 82.5, 80, 75, 70, 65, 60, 55, 50]
+    
+  results_vpctl = []
+  results_trial = []
+  results_nHVgenes = []
+  results_nPCs_each = []
+
+  # Determine # of significant PC dimensions vs randomized data for different numbers of highly variable genes
+  for n, vpctl in enumerate(dim_test_vpctl):
+    sys.stdout.write('\rRunning Dimensionality Test %i / %i' % (n+1, len(dim_test_vpctl))); sys.stdout.flush()
+    dew.get_variable_genes(adata, min_vscore_pctl = vpctl)
+    if dim_test_n_comps_test > np.sum(adata.var.highly_variable):
+      # nPC dimensions tested cannot exceed the # of variable genes; adjust n_comps_test if needed
+      dew.get_significant_pcs(adata, n_iter = dim_test_n_trials, n_comps_test = np.sum(adata.var.highly_variable)-1, show_plots=False, zero_center=True, verbose=False)  
+    else:
+      dew.get_significant_pcs(adata, n_iter = dim_test_n_trials, n_comps_test = dim_test_n_comps_test, show_plots=False, zero_center=True, verbose=False)
+    
+    # Report results from each independent trial
+    for trial in range(0, dim_test_n_trials):
+      results_vpctl.append(vpctl)
+      results_trial.append(trial)
+      results_nHVgenes.append(np.sum(adata.var.highly_variable))
+      results_nPCs_each.append(adata.uns['n_sig_PCs_trials'][trial])
+
+  # Organize and plot results  
+  results = pd.DataFrame({'vscore_pct': results_vpctl, 'trial': results_trial,'n_hv_genes': results_nHVgenes, 'n_sig_PCs': results_nPCs_each})
+  display(results)
+  fg = sns.lineplot(x=results.n_hv_genes, y=results.n_sig_PCs)
+
+  return results
 
