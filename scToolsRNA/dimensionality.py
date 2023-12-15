@@ -353,12 +353,12 @@ def run_dim_tests(adata, dim_test_n_comps_test=300, dim_test_n_trials=5, dim_tes
   # Determine # of significant PC dimensions vs randomized data for different numbers of highly variable genes
   for n, vpctl in enumerate(dim_test_vpctl):
     sys.stdout.write('\rRunning Dimensionality Test %i / %i' % (n+1, len(dim_test_vpctl))); sys.stdout.flush()
-    dew.get_variable_genes(adata, min_vscore_pctl = vpctl)
+    get_variable_genes(adata, min_vscore_pctl = vpctl)
     if dim_test_n_comps_test > np.sum(adata.var.highly_variable):
       # nPC dimensions tested cannot exceed the # of variable genes; adjust n_comps_test if needed
-      dew.get_significant_pcs(adata, n_iter = dim_test_n_trials, n_comps_test = np.sum(adata.var.highly_variable)-1, show_plots=False, zero_center=True, verbose=False)  
+      get_significant_pcs(adata, n_iter = dim_test_n_trials, n_comps_test = np.sum(adata.var.highly_variable)-1, show_plots=False, zero_center=True, verbose=False)  
     else:
-      dew.get_significant_pcs(adata, n_iter = dim_test_n_trials, n_comps_test = dim_test_n_comps_test, show_plots=False, zero_center=True, verbose=False)
+      get_significant_pcs(adata, n_iter = dim_test_n_trials, n_comps_test = dim_test_n_comps_test, show_plots=False, zero_center=True, verbose=False)
     
     # Report results from each independent trial
     for trial in range(0, dim_test_n_trials):
