@@ -144,7 +144,6 @@ def get_variable_genes(adata, norm_counts_per_cell=1e6, min_vscore_pctl=85, min_
     return adata
 
 
-
 def plot_gene_ff(adata, gene_ix=None, color=None):
 
   if gene_ix == None:
@@ -172,7 +171,6 @@ def plot_gene_ff(adata, gene_ix=None, color=None):
   plt.show()
 
 
-
 def plot_gene_vscores(adata, gene_ix=None, color=None):
 
   if gene_ix == None:
@@ -195,7 +193,6 @@ def plot_gene_vscores(adata, gene_ix=None, color=None):
   plt.show()
 
  
-
 def get_covarying_genes(E, gene_ix, minimum_correlation=0.2, show_hist=False, sample_name=''):
 
     # subset input matrix to gene_ix
