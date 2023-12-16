@@ -10,3 +10,4 @@ from .readwrite import *
 from .sparse import *
 from .trajectories import *
 from .colormaps import *
+from .workflows import *
