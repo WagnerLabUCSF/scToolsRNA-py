@@ -2,6 +2,10 @@
 import scanpy as sc
 
 
+def process(adata):
+
+	return adata
+
 def process_adata_raw2umap(adata, batch_key=None):
 	
 	# Store raw counts as separate layer
