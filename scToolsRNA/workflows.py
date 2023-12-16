@@ -1,5 +1,6 @@
 
 import scanpy as sc
+import numpy as np
 
 
 def process(adata):
