@@ -26,7 +26,7 @@ def process_adata_raw2umap(adata, batch_key=None):
 	sc.pp.scale(adata, zero_center=False)
 
 	# Estimate the dimensionality of the dataset
-	dew.run_dim_tests(adata)
+	dew.run_dim_tests(adata, dim_test_n_comps_test=300, dim_test_n_trials=5, dim_test_vpctl=None, return_df=False)
 
 	# Get the optimal # of variable genes and PC dimensions
 	dew.get_variable_genes(adata, norm_counts_per_cell=1e6, min_vscore_pctl=85, min_counts=3, min_cells=3, show_FF_plot=False, show_vscore_plot=False):

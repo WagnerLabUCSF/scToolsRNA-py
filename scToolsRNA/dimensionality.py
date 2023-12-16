@@ -6,6 +6,7 @@ import sklearn
 import scanpy as sc
 import matplotlib.pyplot as plt
 import seaborn as sns
+import pandas as pd
 
 
 
@@ -214,7 +215,7 @@ def get_covarying_genes(E, gene_ix, minimum_correlation=0.2, show_hist=False, sa
         plt.figure(figsize=(6, 6))
         plt.hist(max_neighbor_corr,bins=100)
         plt.title(sample_name)
-        plt.xlabel('Nearest Gene Correlation')
+        plt.xlabel('Nearest Neighbor Correlation')
         plt.ylabel('Counts')
         plt.show()
   
@@ -340,7 +341,7 @@ def get_significant_pcs(adata, n_iter = 3, n_comps_test = 200, threshold_method=
 # ESTIMATE DIMENSIONALITY 
 
 
-def run_dim_tests(adata, dim_test_n_comps_test=300, dim_test_n_trials=5, dim_test_vpctl=None):
+def run_dim_tests(adata, dim_test_n_comps_test=300, dim_test_n_trials=5, dim_test_vpctl=None, return_df=False):
 
   if dim_test_vpctl is None:
     dim_test_vpctl = [99, 97.5, 95, 92.5, 90, 87.5, 85, 82.5, 80, 75, 70, 65, 60, 55, 50]
@@ -372,5 +373,6 @@ def run_dim_tests(adata, dim_test_n_comps_test=300, dim_test_n_trials=5, dim_tes
   display(results)
   fg = sns.lineplot(x=results.n_hv_genes, y=results.n_sig_PCs)
 
-  return results
+  if return_df:
+    return results
 
