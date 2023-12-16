@@ -341,7 +341,7 @@ def get_significant_pcs(adata, n_iter = 3, n_comps_test = 200, threshold_method=
 # ESTIMATE DIMENSIONALITY 
 
 
-def run_dim_tests(adata, dim_test_n_comps_test=300, dim_test_n_trials=5, dim_test_vpctl=None, return_df=False):
+def run_dim_tests(adata, dim_test_n_comps_test=300, dim_test_n_trials=5, dim_test_vpctl=None, verbose=True):
 
   if dim_test_vpctl is None:
     dim_test_vpctl = [99, 97.5, 95, 92.5, 90, 87.5, 85, 82.5, 80, 75, 70, 65, 60, 55, 50]
@@ -353,13 +353,14 @@ def run_dim_tests(adata, dim_test_n_comps_test=300, dim_test_n_trials=5, dim_tes
 
   # Determine # of significant PC dimensions vs randomized data for different numbers of highly variable genes
   for n, vpctl in enumerate(dim_test_vpctl):
-    sys.stdout.write('\rRunning Dimensionality Test %i / %i' % (n+1, len(dim_test_vpctl))); sys.stdout.flush()
-    get_variable_genes(adata, min_vscore_pctl = vpctl)
+    if verbose:
+      sys.stdout.write('\rRunning Dimensionality Test %i / %i' % (n+1, len(dim_test_vpctl))); sys.stdout.flush()
+    dew.get_variable_genes(adata, min_vscore_pctl = vpctl)
     if dim_test_n_comps_test > np.sum(adata.var.highly_variable):
       # nPC dimensions tested cannot exceed the # of variable genes; adjust n_comps_test if needed
-      get_significant_pcs(adata, n_iter = dim_test_n_trials, n_comps_test = np.sum(adata.var.highly_variable)-1, show_plots=False, zero_center=True, verbose=False)  
+      dew.get_significant_pcs(adata, n_iter = dim_test_n_trials, n_comps_test = np.sum(adata.var.highly_variable)-1, show_plots=False, zero_center=True, verbose=False)  
     else:
-      get_significant_pcs(adata, n_iter = dim_test_n_trials, n_comps_test = dim_test_n_comps_test, show_plots=False, zero_center=True, verbose=False)
+      dew.get_significant_pcs(adata, n_iter = dim_test_n_trials, n_comps_test = dim_test_n_comps_test, show_plots=False, zero_center=True, verbose=False)
     
     # Report results from each independent trial
     for trial in range(0, dim_test_n_trials):
@@ -370,9 +371,10 @@ def run_dim_tests(adata, dim_test_n_comps_test=300, dim_test_n_trials=5, dim_tes
 
   # Organize and plot results  
   results = pd.DataFrame({'vscore_pct': results_vpctl, 'trial': results_trial,'n_hv_genes': results_nHVgenes, 'n_sig_PCs': results_nPCs_each})
-  display(results)
   fg = sns.lineplot(x=results.n_hv_genes, y=results.n_sig_PCs)
 
-  if return_df:
-    return results
+  adata.uns['dim_test_results'] = results 
+  adata.uns['optim_vscore_pctl'] = results.vscore_pct[np.argmax(results.n_sig_PCs)]
+
+  return adata
 
