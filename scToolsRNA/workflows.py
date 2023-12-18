@@ -1,7 +1,7 @@
 
 import scanpy as sc
 import numpy as np
-
+from ..dimensionality import *
 
 def process(adata):
 
