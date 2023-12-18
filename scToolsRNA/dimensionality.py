@@ -81,7 +81,23 @@ def runningquantile(x, y, p, nBins):
     return xOut, yOut
 
 
-def get_variable_genes(adata, norm_counts_per_cell=1e6, batch_key=None, min_vscore_pctl=85, min_counts=3, min_cells=3, show_FF_plot=False, show_vscore_plot=False):
+def get_variable_genes_batch(adata, norm_counts_per_cell=1e6, batch_key=None, min_vscore_pctl=85, min_counts=3, min_cells=3):
+    
+    # obtain results dataframes for "get_variable_genes" on each separate batch
+    results_dict = {}
+    batch_ids = np.unique(adata.obs['batch_key'])
+    n_batches = len(batch_ids)
+    for b in batch_ids:
+        adata_batch = adata[b]
+        adata_batch = get_variable_genes(adata_batch, norm_counts_per_cell=norm_counts_per_cell, min_vscore_pctl=min_vscore_pctl, min_counts=min_counts, min_cells=min_cells)
+        results_dict[b] = adata_batch.var
+
+    # now each gene has multiple sets of results stats.  which ones to use?  
+
+
+
+
+def get_variable_genes(adata, norm_counts_per_cell=1e6, min_vscore_pctl=85, min_counts=3, min_cells=3):
 
     ''' 
     Identifies highly variable genes
@@ -98,30 +114,7 @@ def get_variable_genes(adata, norm_counts_per_cell=1e6, batch_key=None, min_vsco
     min_vscore = np.percentile(Vscores[ix2], min_vscore_pctl)    
     ix3 = (((E[:, ix1[ix2]] >= min_counts).sum(0).A.squeeze()>= min_cells) & (Vscores[ix2] >= min_vscore)) # ix3 = highly variable genes
 
-    if show_FF_plot:
-        x_min = 0.5 * np.min(mu_gene[ix2])
-        x_max = 2 * np.max(mu_gene[ix2])
-        xTh = x_min * np.exp(np.log(x_max / x_min) * np.linspace(0, 1, 100))
-        yTh = (1 + a) * (1 + b) + b * xTh
-        plt.figure(figsize=(6, 6))
-        plt.scatter(np.log10(mu_gene[ix2]), np.log10(FF_gene[ix2]), c=np.array(['grey']), alpha=0.3, edgecolors=None, s=4)
-        plt.scatter(np.log10(mu_gene[ix2])[ix3], np.log10(FF_gene[ix2])[ix3], c=np.log10(Vscores[ix2])[ix3], cmap=np.array(['blue']), alpha=0.3, edgecolors=None, s=4)
-        plt.plot(np.log10(xTh), np.log10(yTh))
-        plt.xlabel('Mean Transcripts Per Cell (log10)')
-        plt.ylabel('Gene Fano Factor (log10)')
-        plt.show()
-
-    if show_vscore_plot:
-        plt.figure(figsize=(6, 6))
-        plt.scatter(np.log10(mu_gene[ix2]), np.log10(Vscores[ix2]), c=np.array(['grey']), alpha=0.3, edgecolors=None, s=4)
-        plt.scatter(np.log10(mu_gene[ix2])[ix3], np.log10(Vscores[ix2])[ix3], c=np.log10(FF_gene[ix2])[ix3], cmap=np.array(['blue']), alpha=0.3, edgecolors=None, s=4)
-        plt.xlabel('Mean Transcripts Per Cell (log10)')
-        plt.ylabel('Vscores (log10)')
-        plt.show()
-
-    # export results to adata
-    
-    # save highly variable gene flags
+    # annotate highly variable gene in adata
     if 'highly_variable' in adata.var.keys():
         adata.var['highly_variable_older'] = adata.var['highly_variable'].copy()
     hv_genes = adata.var_names[ix1[ix2][ix3]]
@@ -194,32 +187,58 @@ def plot_gene_vscores(adata, gene_ix=None, color=None):
   plt.show()
 
  
-def get_covarying_genes(E, gene_ix, minimum_correlation=0.2, show_hist=False, sample_name=''):
+def get_covarying_genes(adata, minimum_correlation=0.2, show_hist=True):
 
-    # subset input matrix to gene_ix
-    E = E[:,gene_ix]
-    
-    # compute gene-gene correlation distance matrix (1-correlation)
-    #gene_correlation_matrix1 = sklearn.metrics.pairwise_distances(E.todense().T, metric='correlation',n_jobs=-1)
-    gene_correlation_matrix = 1-sparse_corr(E) # approx. 2X faster than sklearn
-  
-    # for each gene, get correlation to the nearest gene neighbor (ignoring self)
+    # Subset adata to highly variable genes x cells (counts matrix only)
+    adata_tmp = sc.AnnData(adata[:,adata.var.highly_variable].X)
+
+    # Determine if the input matrix is sparse
+    sparse=False
+    if scipy.sparse.issparse(adata_tmp.X):
+      sparse=True
+
+    # Get nn correlation distance for each highly variable gene
+    gene_correlation_matrix = 1-dew.sparse_corr(adata_tmp.X)
     np.fill_diagonal(gene_correlation_matrix, np.inf)
     max_neighbor_corr = 1-gene_correlation_matrix.min(axis=1)
-  
+
     # filter genes whose nearest neighbor correlation is above threshold 
     ix_keep = np.array(max_neighbor_corr > minimum_correlation, dtype=bool).squeeze()
-  
-    # plot distribution of top gene-gene correlations
-    if show_hist:
-        plt.figure(figsize=(6, 6))
-        plt.hist(max_neighbor_corr,bins=100)
-        plt.title(sample_name)
-        plt.xlabel('Nearest Neighbor Correlation')
-        plt.ylabel('Counts')
-        plt.show()
-  
-    return gene_ix[ix_keep]
+    
+    # Prepare a randomized data matrix                    
+    adata_tmp_rand = adata_tmp.copy()
+    
+    if sparse:
+      mat = adata_tmp_rand.X.todense()
+    else:
+      mat = adata_tmp_rand.X
+    
+    # randomly permute each row of the counts matrix
+    for c in range(mat.shape[1]):
+        np.random.seed(seed=c)
+        mat[:,c] = mat[np.random.permutation(mat.shape[0]),c]
+    
+    if sparse:        
+      adata_tmp_rand.X = scipy.sparse.csr_matrix(mat)
+    else:
+      adata_tmp_rand.X = mat
+    
+    # Get nn correlation distances for randomized data
+    gene_correlation_matrix = 1-dew.sparse_corr(adata_tmp_rand.X)
+    np.fill_diagonal(gene_correlation_matrix, np.inf)
+    max_neighbor_corr_rand = 1-gene_correlation_matrix.min(axis=1)
+    
+    # Plot histogram of correlation distances
+    plt.figure(figsize=(6, 6))
+    plt.hist(max_neighbor_corr_rand, bins=np.linspace(0, 1, 100), density=False, alpha=0.5, label='random')
+    plt.hist(max_neighbor_corr, bins=np.linspace(0, 1, 100), density=False, alpha=0.5, label='data')
+    plt.axvline(x = minimum_correlation, color = 'k', linestyle = '--', alpha=0.5, linewidth=1)
+    plt.xlabel('Nearest Neighbor Correlation')
+    plt.ylabel('Counts')
+    plt.legend(loc='upper right')
+    plt.show()
+    
+    return adata_tmp.var[ix_keep]
 
 
 
@@ -341,7 +360,7 @@ def get_significant_pcs(adata, n_iter = 3, n_comps_test = 200, threshold_method=
 # ESTIMATE DIMENSIONALITY 
 
 
-def run_dim_tests(adata, dim_test_n_comps_test=300, dim_test_n_trials=5, dim_test_vpctl=None, verbose=True):
+def run_dim_tests(adata, dim_test_n_comps_test=300, dim_test_n_trials=3, dim_test_vpctl=None, verbose=True):
 
   if dim_test_vpctl is None:
     dim_test_vpctl = [99, 97.5, 95, 92.5, 90, 87.5, 85, 82.5, 80, 75, 70, 65, 60, 55, 50]

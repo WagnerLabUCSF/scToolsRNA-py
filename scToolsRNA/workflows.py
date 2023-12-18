@@ -33,7 +33,7 @@ def pp_raw2norm(adata, batch_key=None):
 def pp_get_dims(adata, batch_key=None, verbose=True):
 
 	# Estimate the dimensionality of the dataset
-	adata = run_dim_tests(adata, dim_test_n_comps_test=300, dim_test_n_trials=5, dim_test_vpctl=None, verbose=verbose)
+	adata = run_dim_tests(adata, dim_test_n_comps_test=300, dim_test_n_trials=3, dim_test_vpctl=None, verbose=verbose)
 
 	# Get the opimal # of variable genes and PC dimensions
 	get_variable_genes(adata, norm_counts_per_cell=1e6, min_vscore_pctl=adata.uns['optim_vscore_pctl'], min_counts=3, min_cells=3, show_FF_plot=False, show_vscore_plot=False)
