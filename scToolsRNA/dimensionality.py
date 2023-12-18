@@ -369,12 +369,14 @@ def run_dim_tests(adata, dim_test_n_comps_test=300, dim_test_n_trials=5, dim_tes
       results_nHVgenes.append(np.sum(adata.var.highly_variable))
       results_nPCs_each.append(adata.uns['n_sig_PCs_trials'][trial])
 
-  # Organize and plot results  
+  # Export results to adata.uns
   results = pd.DataFrame({'vscore_pct': results_vpctl, 'trial': results_trial,'n_hv_genes': results_nHVgenes, 'n_sig_PCs': results_nPCs_each})
-  fg = sns.lineplot(x=results.n_hv_genes, y=results.n_sig_PCs)
-
   adata.uns['dim_test_results'] = results 
   adata.uns['optim_vscore_pctl'] = results.vscore_pct[np.argmax(results.n_sig_PCs)]
+
+  # Generate line plot
+  fg = sns.lineplot(x=results.n_hv_genes, y=results.n_sig_PCs)
+  plt.show()
 
   return adata
 

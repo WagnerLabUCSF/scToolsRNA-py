@@ -31,7 +31,7 @@ def process_adata_raw2umap(adata, batch_key=None):
 	sc.pp.scale(adata, zero_center=False)
 
 	# Estimate the dimensionality of the dataset
-	adata = run_dim_tests(adata, dim_test_n_comps_test=300, dim_test_n_trials=5, dim_test_vpctl=None, verbose=False)
+	adata = run_dim_tests(adata, dim_test_n_comps_test=300, dim_test_n_trials=5, dim_test_vpctl=None, verbose=True)
 
 	# Get the opimal # of variable genes and PC dimensions
 	get_variable_genes(adata, norm_counts_per_cell=1e6, min_vscore_pctl=adata.uns['optim_vscore_pctl'], min_counts=3, min_cells=3, show_FF_plot=False, show_vscore_plot=False)
@@ -42,7 +42,7 @@ def process_adata_raw2umap(adata, batch_key=None):
 
 	# Generate neighbor graph, incorporating Harmony integration if necessary
 	if batch_key == None:
-		sc.pp.neighbors(adata, n_neighbors=10, n_pcs=adata.uns['n_sig_PCs'], metric='euclidean', use_rep='X_pca_harmony')
+		sc.pp.neighbors(adata, n_neighbors=10, n_pcs=adata.uns['n_sig_PCs'], metric='euclidean', use_rep='X_pca')
 	else:
 		sc.external.pp.harmony_integrate(adata, batch_key, basis='X_pca', adjusted_basis='X_pca_harmony')
 		sc.pp.neighbors(adata, n_neighbors=10, n_pcs=adata.uns['n_sig_PCs'], metric='euclidean', use_rep='X_pca_harmony')
