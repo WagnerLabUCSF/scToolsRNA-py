@@ -31,11 +31,11 @@ def process_adata_raw2umap(adata, batch_key=None):
 	sc.pp.scale(adata, zero_center=False)
 
 	# Estimate the dimensionality of the dataset
-	adata = dew.run_dim_tests(adata, dim_test_n_comps_test=300, dim_test_n_trials=5, dim_test_vpctl=None, verbose=False)
+	adata = run_dim_tests(adata, dim_test_n_comps_test=300, dim_test_n_trials=5, dim_test_vpctl=None, verbose=False)
 
-	# Get the optimal # of variable genes and PC dimensions
-	dew.get_variable_genes(adata, norm_counts_per_cell=1e6, min_vscore_pctl=adata.uns['optim_vscore_pctl'], min_counts=3, min_cells=3, show_FF_plot=False, show_vscore_plot=False)
-	dew.get_significant_pcs(adata, n_iter = 20, n_comps_test = 300, show_plots=True, zero_center=True)
+	# Get the opimal # of variable genes and PC dimensions
+	get_variable_genes(adata, norm_counts_per_cell=1e6, min_vscore_pctl=adata.uns['optim_vscore_pctl'], min_counts=3, min_cells=3, show_FF_plot=False, show_vscore_plot=False)
+	get_significant_pcs(adata, n_iter = 20, n_comps_test = 300, show_plots=True, zero_center=True)
 
 	# Perform PCA with a specified number of dimensions
 	sc.pp.pca(adata, n_comps=adata.uns['n_sig_PCs'], zero_center=True)
