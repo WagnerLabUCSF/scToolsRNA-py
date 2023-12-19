@@ -388,7 +388,7 @@ def get_significant_pcs(adata, n_iter = 3, n_comps_test = 200, threshold_method=
 # ESTIMATE DIMENSIONALITY 
 
 
-def run_dim_tests(adata, batch_key=None, batch_gene_filter_method='multiple', dim_test_n_comps_test=300, dim_test_n_trials=3, dim_test_vpctl=None, verbose=True):
+def run_dim_tests(adata, batch_key=None, gene_filter_method='multiple', dim_test_n_comps_test=300, dim_test_n_trials=3, dim_test_vpctl=None, verbose=True):
 
   if dim_test_vpctl is None:
     dim_test_vpctl = [99, 97.5, 95, 92.5, 90, 87.5, 85, 82.5, 80, 75, 70, 65, 60, 55, 50]
@@ -406,7 +406,7 @@ def run_dim_tests(adata, batch_key=None, batch_gene_filter_method='multiple', di
     # Get and filter variable genes for this vcptl 
     adata = get_variable_genes(adata, min_vscore_pctl = vpctl)
     if batch_key != None:
-        adata = filter_variable_genes_by_batch(adata, batch_key=batch_key, min_vscore_pctl=vpctl)
+        adata = filter_variable_genes_by_batch(adata, batch_key=batch_key, filter_method=gene_filter_method, min_vscore_pctl=vpctl)
     
     # Get # significant PCs for these variable genes & this vcptl
     if dim_test_n_comps_test > np.sum(adata.var.highly_variable):
