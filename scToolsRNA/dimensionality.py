@@ -103,7 +103,7 @@ def get_variable_genes_batch(adata, norm_counts_per_cell=1e6, batch_key=None, mi
     within_batch_hv_genes = within_batch_hv_genes[c >= 4]
     
     # update the highly variable gene flags in adata
-    adata.var['highly_variable_all_batches'] = adata.var['highly_variable'].copy()
+    adata.var['highly_variable_all_batches'] = adata.var['highly_variable']
     adata.var['highly_variable'] = False
     adata.var.loc[within_batch_hv_genes, 'highly_variable'] = True
 
