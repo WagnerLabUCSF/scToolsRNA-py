@@ -92,7 +92,9 @@ def get_variable_genes_batch(adata, norm_counts_per_cell=1e6, batch_key=None, mi
         adata_batch = get_variable_genes(adata_batch, norm_counts_per_cell=norm_counts_per_cell, min_vscore_pctl=min_vscore_pctl, min_counts=min_counts, min_cells=min_cells)
         results_dict[b] = adata_batch.var
 
-    # now each gene has multiple sets of results stats.  which ones to use?  
+    # make a list of genes that were found in any of the individual batches
+
+
 
 
 
@@ -393,8 +395,22 @@ def run_dim_tests(adata, dim_test_n_comps_test=300, dim_test_n_trials=3, dim_tes
   adata.uns['dim_test_results'] = results 
   adata.uns['optim_vscore_pctl'] = results.vscore_pct[np.argmax(results.n_sig_PCs)]
 
+  def label_point(x, y, val, ax):
+    a = pd.concat({'x': x, 'y': y, 'val': val}, axis=1)
+    for i, point in a.iterrows():
+        ax.text(point['x']+.02, point['y'], str(point['val']))
+
   # Generate line plot
-  fg = sns.lineplot(x=results.n_hv_genes, y=results.n_sig_PCs)
+  plt.figure()
+  ax = plt.subplot(111)
+  sns.lineplot(x=results.vscore_pct, y=results.n_sig_PCs)
+  ymin, ymax = ax.get_ylim()
+  label_gap = (ymax - ymin) / 50 
+  ix = results.trial==0
+  [ax.text(x, ymax+label_gap, name, rotation=90, horizontalalignment='center') for x, y, name in zip(results[ix].vscore_pct, results[ix].n_sig_PCs, results[ix].n_hv_genes)]
+  plt.ylabel('# PCs Above Random')
+  plt.xlabel('vscore Percentile')
+  ax.invert_xaxis()
   plt.show()
 
   return adata
