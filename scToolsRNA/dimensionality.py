@@ -49,6 +49,12 @@ def get_vscores(E, min_mean=0, nBins=50, fit_percentile=0.1, error_wt=1):
     b = scipy.optimize.fmin(func=errFun, x0=[b0], disp=False)
     a = c / (1 + b) - 1
 
+    print(x)
+    print(c)
+    print(b2)
+    print(y)
+
+
     v_scores = FF_gene / ((1 + a) * (1 + b) + b * mu_gene)
     CV_eff = np.sqrt((1 + a) * (1 + b) - 1)
     CV_input = np.sqrt(b)
