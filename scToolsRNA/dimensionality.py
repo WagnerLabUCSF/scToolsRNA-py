@@ -84,7 +84,7 @@ def runningquantile(x, y, p, nBins):
 def get_variable_genes_batch(adata, norm_counts_per_cell=1e6, batch_key=None, min_vscore_pctl=85, min_counts=3, min_cells=3):
     
     # Find variable genes for the entire adata object
-    adata = get_variable_genes(adata, norm_counts_per_cell=1e6, min_vscore_pctl=min_vscore_pctl, min_counts=3, min_cells=3)
+    adata = get_variable_genes(adata, norm_counts_per_cell=norm_counts_per_cell, min_vscore_pctl=min_vscore_pctl, min_counts=min_counts, min_cells=min_cells)
 
     # Now filter genes based on 
     # get a list of variable genes that were discovered within each batches
@@ -93,7 +93,7 @@ def get_variable_genes_batch(adata, norm_counts_per_cell=1e6, batch_key=None, mi
     within_batch_hv_genes = []
     for b in batch_ids:
         adata_batch = adata[adata.obs[batch_key] == b]
-        adata_batch = get_variable_genes(adata_batch)
+        adata_batch = get_variable_genes(adata_batch, norm_counts_per_cell=norm_counts_per_cell, min_vscore_pctl=min_vscore_pctl, min_counts=min_counts, min_cells=min_cells)
         hv_genes_this_batch = list(adata_batch.uns['vscore_stats']['hv_genes']) 
         within_batch_hv_genes.append(hv_genes_this_batch)
     
@@ -108,6 +108,7 @@ def get_variable_genes_batch(adata, norm_counts_per_cell=1e6, batch_key=None, mi
     adata.var.loc[within_batch_hv_genes, 'highly_variable'] = True
 
     return adata
+
 
 def get_variable_genes(adata, norm_counts_per_cell=1e6, min_vscore_pctl=85, min_counts=3, min_cells=3):
 
@@ -128,7 +129,7 @@ def get_variable_genes(adata, norm_counts_per_cell=1e6, min_vscore_pctl=85, min_
 
     # annotate highly variable gene in adata
     if 'highly_variable' in adata.var.keys():
-        adata.var['highly_variable_older'] = adata.var['highly_variable'].copy()
+        adata.var['highly_variable_older'] = adata.var['highly_variable']
     hv_genes = adata.var_names[ix1[ix2][ix3]]
     adata.var['highly_variable'] = False
     adata.var.loc[hv_genes, 'highly_variable'] = True
