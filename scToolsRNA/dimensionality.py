@@ -84,7 +84,7 @@ def runningquantile(x, y, p, nBins):
 def get_variable_genes_batch(adata, norm_counts_per_cell=1e6, batch_key=None, min_vscore_pctl=85, min_counts=3, min_cells=3):
     
     # Find variable genes for the entire adata object
-    adata = get_variable_genes(adata, norm_counts_per_cell=1e6, min_vscore_pctl=85, min_counts=3, min_cells=3)
+    adata = get_variable_genes(adata, norm_counts_per_cell=1e6, min_vscore_pctl=min_vscore_pctl, min_counts=3, min_cells=3)
 
     # Now filter genes based on 
     # get a list of variable genes that were discovered within each batches
@@ -372,7 +372,7 @@ def get_significant_pcs(adata, n_iter = 3, n_comps_test = 200, threshold_method=
 # ESTIMATE DIMENSIONALITY 
 
 
-def run_dim_tests(adata, batch_key=None, dim_test_n_comps_test=300, dim_test_n_trials=3, dim_test_vpctl=None, verbose=True):
+def run_dim_tests(adata, dim_test_n_comps_test=300, dim_test_n_trials=3, dim_test_vpctl=None, verbose=True):
 
   if dim_test_vpctl is None:
     dim_test_vpctl = [99, 97.5, 95, 92.5, 90, 87.5, 85, 82.5, 80, 75, 70, 65, 60, 55, 50]
