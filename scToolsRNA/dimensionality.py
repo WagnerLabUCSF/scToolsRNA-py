@@ -89,7 +89,6 @@ def get_variable_genes(adata, norm_counts_per_cell=1e6, min_vscore_pctl=85, min_
     '''
 
     E = adata.layers['tpm_nolog']
-    print(type(E))
     
     # get variability statistics
     Vscores, CV_eff, CV_input, ix1, mu_gene, FF_gene, a, b = get_vscores(E) # ix1 = genes for which vscores could be returned
@@ -133,6 +132,7 @@ def filter_variable_genes_by_batch(adata, batch_key=None, filter_method='multipl
     n_batches = len(batch_ids)
     within_batch_hv_genes = []
     for b in batch_ids:
+        print(b)
         adata_batch = adata[adata.obs[batch_key] == b].copy()
         sc.pp.filter_cells(adata_batch, min_genes=200)
         adata_batch = get_variable_genes(adata_batch, norm_counts_per_cell=norm_counts_per_cell, min_vscore_pctl=min_vscore_pctl, min_counts=min_counts, min_cells=min_cells)
