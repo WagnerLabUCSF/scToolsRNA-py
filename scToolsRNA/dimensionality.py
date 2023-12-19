@@ -129,7 +129,7 @@ def get_variable_genes(adata, norm_counts_per_cell=1e6, min_vscore_pctl=85, min_
 
     # annotate highly variable gene in adata
     if 'highly_variable' in adata.var.keys():
-        adata.var['highly_variable_older'] = adata.var['highly_variable']
+        adata.var['highly_variable_older'] = adata.var['highly_variable'].copy()
     hv_genes = adata.var_names[ix1[ix2][ix3]]
     adata.var['highly_variable'] = False
     adata.var.loc[hv_genes, 'highly_variable'] = True
@@ -155,7 +155,9 @@ def plot_gene_ff(adata, gene_ix=None, color=None):
 
   if gene_ix == None:
     gene_ix = adata.var['highly_variable']
-  
+  else:
+    gene_ix = adata.var[gene_ix]
+
   if color == None:
     color = np.array(['blue'])
 
@@ -182,6 +184,8 @@ def plot_gene_vscores(adata, gene_ix=None, color=None):
 
   if gene_ix == None:
     gene_ix = adata.var['highly_variable']
+  else:
+    gene_ix = adata.var[gene_ix]
   
   if color == None:
     color = np.array(['blue'])
