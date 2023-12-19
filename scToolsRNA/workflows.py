@@ -19,10 +19,10 @@ def pp_raw2norm(adata, batch_key=None):
 	adata.layers['tpm'] = adata.X.copy()
 	
 	# Determine highly variable genes using default ScanPy method: 'seurat', store results in uns
-	if batch_key == None:
-		adata.uns['highly_variable_scanpy'] = sc.pp.highly_variable_genes(adata, max_mean=10, min_mean=0.1, inplace=False)
-	else:
-		adata.uns['highly_variable_scanpy'] = sc.pp.highly_variable_genes(adata, batch_key=batch_key, max_mean=10, min_mean=0.1, inplace=False)
+	#if batch_key == None:
+	#	adata.uns['highly_variable_scanpy'] = sc.pp.highly_variable_genes(adata, max_mean=10, min_mean=0.1, inplace=False)
+	#else:
+	#	adata.uns['highly_variable_scanpy'] = sc.pp.highly_variable_genes(adata, batch_key=batch_key, max_mean=10, min_mean=0.1, inplace=False)
 
 	# Scale the genes by z-score (large sparse matrix-friendly)
 	sc.pp.scale(adata, zero_center=False)
