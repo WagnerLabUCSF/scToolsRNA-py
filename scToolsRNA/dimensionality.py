@@ -132,7 +132,7 @@ def filter_variable_genes_by_batch(adata, batch_key=None, filter_method='multipl
     n_batches = len(batch_ids)
     within_batch_hv_genes = []
     for b in batch_ids:
-        adata_batch = adata[adata.obs[batch_key] == b]
+        adata_batch = adata[adata.obs[batch_key] == b].copy()
         adata_batch = get_variable_genes(adata_batch, norm_counts_per_cell=norm_counts_per_cell, min_vscore_pctl=min_vscore_pctl, min_counts=min_counts, min_cells=min_cells)
         hv_genes_this_batch = list(adata_batch.uns['vscore_stats']['hv_genes']) 
         within_batch_hv_genes.append(hv_genes_this_batch)
