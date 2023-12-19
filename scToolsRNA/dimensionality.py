@@ -19,10 +19,6 @@ def get_vscores(E, min_mean=0, nBins=50, fit_percentile=0.1, error_wt=1):
     Return v-scores and other stats
     '''
 
-    print(type(E))
-    E = np.float64(E)
-    print(type(E))
-    
     ncell = E.shape[0]
 
     mu_gene = E.mean(axis=0).A.squeeze()
@@ -93,6 +89,7 @@ def get_variable_genes(adata, norm_counts_per_cell=1e6, min_vscore_pctl=85, min_
     '''
 
     E = adata.layers['tpm_nolog']
+    print(type(E))
     
     # get variability statistics
     Vscores, CV_eff, CV_input, ix1, mu_gene, FF_gene, a, b = get_vscores(E) # ix1 = genes for which vscores could be returned
