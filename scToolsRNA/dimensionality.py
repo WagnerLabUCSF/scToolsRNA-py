@@ -81,35 +81,6 @@ def runningquantile(x, y, p, nBins):
     return xOut, yOut
 
 
-def get_variable_genes_batch(adata, norm_counts_per_cell=1e6, batch_key=None, min_vscore_pctl=85, min_counts=3, min_cells=3):
-    
-    # Find variable genes for the entire adata object
-    adata = get_variable_genes(adata, norm_counts_per_cell=norm_counts_per_cell, min_vscore_pctl=min_vscore_pctl, min_counts=min_counts, min_cells=min_cells)
-
-    # Now filter genes based on 
-    # get a list of variable genes that were discovered within each batches
-    batch_ids = np.unique(adata.obs[batch_key])
-    n_batches = len(batch_ids)
-    within_batch_hv_genes = []
-    for b in batch_ids:
-        adata_batch = adata[adata.obs[batch_key] == b]
-        adata_batch = get_variable_genes(adata_batch, norm_counts_per_cell=norm_counts_per_cell, min_vscore_pctl=min_vscore_pctl, min_counts=min_counts, min_cells=min_cells)
-        hv_genes_this_batch = list(adata_batch.uns['vscore_stats']['hv_genes']) 
-        within_batch_hv_genes.append(hv_genes_this_batch)
-    
-    # filter variable genes based on the # of occurences
-    within_batch_hv_genes = [g for gene in within_batch_hv_genes for g in gene]
-    within_batch_hv_genes, c = np.unique(within_batch_hv_genes, return_counts=True)
-    within_batch_hv_genes = within_batch_hv_genes[c >= 4]
-    
-    # update the highly variable gene flags in adata
-    adata.var['highly_variable_all_batches'] = adata.var['highly_variable']
-    adata.var['highly_variable'] = False
-    adata.var.loc[within_batch_hv_genes, 'highly_variable'] = True
-
-    return adata
-
-
 def get_variable_genes(adata, norm_counts_per_cell=1e6, min_vscore_pctl=85, min_counts=3, min_cells=3):
 
     ''' 
@@ -148,6 +119,33 @@ def get_variable_genes(adata, norm_counts_per_cell=1e6, min_vscore_pctl=85, min_
                                  'a': a,
                                  'b': b,
                                  'min_vscore': min_vscore}
+
+    return adata
+
+
+def filter_variable_genes_by_batch(adata, batch_key=None, norm_counts_per_cell=1e6, min_vscore_pctl=85, min_counts=3, min_cells=3):
+    
+    # Filter variable genes based on their representation within individual sample batches
+    
+    # get lists of variable genes that were discovered within each batch
+    batch_ids = np.unique(adata.obs[batch_key])
+    n_batches = len(batch_ids)
+    within_batch_hv_genes = []
+    for b in batch_ids:
+        adata_batch = adata[adata.obs[batch_key] == b]
+        adata_batch = get_variable_genes(adata_batch, norm_counts_per_cell=norm_counts_per_cell, min_vscore_pctl=min_vscore_pctl, min_counts=min_counts, min_cells=min_cells)
+        hv_genes_this_batch = list(adata_batch.uns['vscore_stats']['hv_genes']) 
+        within_batch_hv_genes.append(hv_genes_this_batch)
+    
+    # filter variable genes based on # of occurences across batches
+    within_batch_hv_genes = [g for gene in within_batch_hv_genes for g in gene]
+    within_batch_hv_genes, c = np.unique(within_batch_hv_genes, return_counts=True)
+    within_batch_hv_genes = within_batch_hv_genes[c >= 4]
+    
+    # update the highly variable gene flags in adata
+    adata.var['highly_variable_all_batches'] = adata.var['highly_variable']
+    adata.var['highly_variable'] = False
+    adata.var.loc[within_batch_hv_genes, 'highly_variable'] = True
 
     return adata
 
@@ -392,7 +390,13 @@ def run_dim_tests(adata, batch_key=None, dim_test_n_comps_test=300, dim_test_n_t
   for n, vpctl in enumerate(dim_test_vpctl):
     if verbose:
       sys.stdout.write('\rRunning Dimensionality Test %i / %i' % (n+1, len(dim_test_vpctl))); sys.stdout.flush()
-    get_variable_genes_batch(adata, batch_key=batch_key, min_vscore_pctl = vpctl)
+    
+    # Get and filter variable genes for this vcptl 
+    get_variable_genes(adata, min_vscore_pctl = vpctl)
+    if batch_key != None:
+        filter_variable_genes_by_batch(adata, batch_key=batch_key, min_vscore_pctl = vpctl)
+    
+    # Get # significant PCs for these variable genes & this vcptl
     if dim_test_n_comps_test > np.sum(adata.var.highly_variable):
       # nPC dimensions tested cannot exceed the # of variable genes; adjust n_comps_test if needed
       get_significant_pcs(adata, n_iter = dim_test_n_trials, n_comps_test = np.sum(adata.var.highly_variable)-1, show_plots=False, zero_center=True, verbose=False)  
@@ -410,11 +414,6 @@ def run_dim_tests(adata, batch_key=None, dim_test_n_comps_test=300, dim_test_n_t
   results = pd.DataFrame({'vscore_pct': results_vpctl, 'trial': results_trial,'n_hv_genes': results_nHVgenes, 'n_sig_PCs': results_nPCs_each})
   adata.uns['dim_test_results'] = results 
   adata.uns['optim_vscore_pctl'] = results.vscore_pct[np.argmax(results.n_sig_PCs)]
-
-  def label_point(x, y, val, ax):
-    a = pd.concat({'x': x, 'y': y, 'val': val}, axis=1)
-    for i, point in a.iterrows():
-        ax.text(point['x']+.02, point['y'], str(point['val']))
 
   # Generate line plot
   plt.figure()
