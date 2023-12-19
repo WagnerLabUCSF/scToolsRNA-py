@@ -51,7 +51,6 @@ def get_vscores(E, min_mean=0, nBins=50, fit_percentile=0.1, error_wt=1):
 
     print(x)
     print(c)
-    print(b2)
     print(y)
 
 
