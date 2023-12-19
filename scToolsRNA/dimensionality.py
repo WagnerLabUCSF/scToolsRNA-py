@@ -392,16 +392,16 @@ def run_dim_tests(adata, batch_key=None, dim_test_n_comps_test=300, dim_test_n_t
       sys.stdout.write('\rRunning Dimensionality Test %i / %i' % (n+1, len(dim_test_vpctl))); sys.stdout.flush()
     
     # Get and filter variable genes for this vcptl 
-    get_variable_genes(adata, min_vscore_pctl = vpctl)
+    adata = get_variable_genes(adata, min_vscore_pctl = vpctl)
     if batch_key != None:
-        filter_variable_genes_by_batch(adata, batch_key=batch_key, min_vscore_pctl = vpctl)
+        adata = filter_variable_genes_by_batch(adata, batch_key=batch_key, min_vscore_pctl=vpctl)
     
     # Get # significant PCs for these variable genes & this vcptl
     if dim_test_n_comps_test > np.sum(adata.var.highly_variable):
       # nPC dimensions tested cannot exceed the # of variable genes; adjust n_comps_test if needed
-      get_significant_pcs(adata, n_iter = dim_test_n_trials, n_comps_test = np.sum(adata.var.highly_variable)-1, show_plots=False, zero_center=True, verbose=False)  
+      adata = get_significant_pcs(adata, n_iter = dim_test_n_trials, n_comps_test = np.sum(adata.var.highly_variable)-1, show_plots=False, zero_center=True, verbose=False)  
     else:
-      get_significant_pcs(adata, n_iter = dim_test_n_trials, n_comps_test = dim_test_n_comps_test, show_plots=False, zero_center=True, verbose=False)
+      adata = get_significant_pcs(adata, n_iter = dim_test_n_trials, n_comps_test = dim_test_n_comps_test, show_plots=False, zero_center=True, verbose=False)
     
     # Report results from each independent trial
     for trial in range(0, dim_test_n_trials):
