@@ -19,6 +19,10 @@ def get_vscores(E, min_mean=0, nBins=50, fit_percentile=0.1, error_wt=1):
     Return v-scores and other stats
     '''
 
+    print(type(E))
+    E = np.float64(E)
+    print(type(E))
+    
     ncell = E.shape[0]
 
     mu_gene = E.mean(axis=0).A.squeeze()
@@ -385,7 +389,7 @@ def get_significant_pcs(adata, n_iter = 3, n_comps_test = 200, threshold_method=
 # ESTIMATE DIMENSIONALITY 
 
 
-def run_dim_tests(adata, batch_key=None, dim_test_n_comps_test=300, dim_test_n_trials=3, dim_test_vpctl=None, verbose=True):
+def run_dim_tests(adata, batch_key=None, batch_gene_filter_method='multiple', dim_test_n_comps_test=300, dim_test_n_trials=3, dim_test_vpctl=None, verbose=True):
 
   if dim_test_vpctl is None:
     dim_test_vpctl = [99, 97.5, 95, 92.5, 90, 87.5, 85, 82.5, 80, 75, 70, 65, 60, 55, 50]
