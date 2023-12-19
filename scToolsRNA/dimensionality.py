@@ -1,5 +1,6 @@
 
 import sys
+import warnings
 import numpy as np
 import scipy
 import sklearn
@@ -48,11 +49,6 @@ def get_vscores(E, min_mean=0, nBins=50, fit_percentile=0.1, error_wt=1):
     b0 = 0.1
     b = scipy.optimize.fmin(func=errFun, x0=[b0], disp=False)
     a = c / (1 + b) - 1
-
-    print(x)
-    print(c)
-    print(y)
-
 
     v_scores = FF_gene / ((1 + a) * (1 + b) + b * mu_gene)
     CV_eff = np.sqrt((1 + a) * (1 + b) - 1)
@@ -137,10 +133,11 @@ def filter_variable_genes_by_batch(adata, batch_key=None, filter_method='multipl
     n_batches = len(batch_ids)
     within_batch_hv_genes = []
     for b in batch_ids:
-        print(b)
         adata_batch = adata[adata.obs[batch_key] == b].copy()
         sc.pp.filter_cells(adata_batch, min_genes=200)
-        adata_batch = get_variable_genes(adata_batch, norm_counts_per_cell=norm_counts_per_cell, min_vscore_pctl=min_vscore_pctl, min_counts=min_counts, min_cells=min_cells)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            adata_batch = get_variable_genes(adata_batch, norm_counts_per_cell=norm_counts_per_cell, min_vscore_pctl=min_vscore_pctl, min_counts=min_counts, min_cells=min_cells)
         hv_genes_this_batch = list(adata_batch.uns['vscore_stats']['hv_genes']) 
         within_batch_hv_genes.append(hv_genes_this_batch)
     
