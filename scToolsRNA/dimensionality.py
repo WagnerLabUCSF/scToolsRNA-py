@@ -123,7 +123,7 @@ def get_variable_genes(adata, norm_counts_per_cell=1e6, min_vscore_pctl=85, min_
     return adata
 
 
-def filter_variable_genes_by_batch(adata, batch_key=None, norm_counts_per_cell=1e6, min_vscore_pctl=85, min_counts=3, min_cells=3):
+def filter_variable_genes_by_batch(adata, batch_key=None, filter_method='multiple', norm_counts_per_cell=1e6, min_vscore_pctl=85, min_counts=3, min_cells=3):
     
     # Filter variable genes based on their representation within individual sample batches
     
@@ -137,10 +137,18 @@ def filter_variable_genes_by_batch(adata, batch_key=None, norm_counts_per_cell=1
         hv_genes_this_batch = list(adata_batch.uns['vscore_stats']['hv_genes']) 
         within_batch_hv_genes.append(hv_genes_this_batch)
     
-    # filter variable genes based on # of occurences across batches
+    # set the count threshold based on filter method
+    if filter_method == 'any':
+        count_thresh = 1
+    elif filter_method == 'multiple':
+        count_thresh = 2
+    elif filter_method == 'all':
+        count_thresh = n_batches     
+
+    # perform filtering
     within_batch_hv_genes = [g for gene in within_batch_hv_genes for g in gene]
     within_batch_hv_genes, c = np.unique(within_batch_hv_genes, return_counts=True)
-    within_batch_hv_genes = within_batch_hv_genes[c >= 4]
+    within_batch_hv_genes = within_batch_hv_genes[c >= count_thresh]
     
     # update the highly variable gene flags in adata
     adata.var['highly_variable_all_batches'] = adata.var['highly_variable']
