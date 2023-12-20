@@ -146,6 +146,8 @@ def filter_variable_genes_by_batch(adata, batch_key=None, filter_method='multipl
         count_thresh = 1
     elif filter_method == 'multiple':
         count_thresh = 2
+    elif filter_method == 'majority':
+        count_thresh = n_batches/2
     elif filter_method == 'all':
         count_thresh = n_batches     
 
