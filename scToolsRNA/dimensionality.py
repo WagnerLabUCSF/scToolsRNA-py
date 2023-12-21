@@ -13,6 +13,30 @@ import pandas as pd
 
 # IDENTIFY HIGHLY VARIABLE GENES
 
+def runningquantile(x, y, p, nBins):
+    """ calculate the quantile of y in bins of x """
+
+    ind = np.argsort(x)
+    x = x[ind]
+    y = y[ind]
+
+    dx = (x[-1] - x[0]) / nBins
+    xOut = np.linspace(x[0]+dx/2, x[-1]-dx/2, nBins)
+
+    yOut = np.zeros(xOut.shape)
+
+    for i in range(len(xOut)):
+        ind = np.nonzero((x >= xOut[i]-dx/2) & (x < xOut[i]+dx/2))[0]
+        if len(ind) > 0:
+            yOut[i] = np.percentile(y[ind], p)
+        else:
+            if i > 0:
+                yOut[i] = yOut[i-1]
+            else:
+                yOut[i] = np.nan
+
+    return xOut, yOut
+
 
 def get_vscores(E, min_mean=0, nBins=50, fit_percentile=0.1, error_wt=1):
     '''
@@ -57,32 +81,7 @@ def get_vscores(E, min_mean=0, nBins=50, fit_percentile=0.1, error_wt=1):
     return v_scores, CV_eff, CV_input, gene_ix, mu_gene, FF_gene, a, b
 
 
-def runningquantile(x, y, p, nBins):
-    """ calculate the quantile of y in bins of x """
-
-    ind = np.argsort(x)
-    x = x[ind]
-    y = y[ind]
-
-    dx = (x[-1] - x[0]) / nBins
-    xOut = np.linspace(x[0]+dx/2, x[-1]-dx/2, nBins)
-
-    yOut = np.zeros(xOut.shape)
-
-    for i in range(len(xOut)):
-        ind = np.nonzero((x >= xOut[i]-dx/2) & (x < xOut[i]+dx/2))[0]
-        if len(ind) > 0:
-            yOut[i] = np.percentile(y[ind], p)
-        else:
-            if i > 0:
-                yOut[i] = yOut[i-1]
-            else:
-                yOut[i] = np.nan
-
-    return xOut, yOut
-
-
-def get_variable_genes(adata, norm_counts_per_cell=1e6, min_vscore_pctl=85, min_counts=3, min_cells=3, in_place=True):
+def get_vscores_adata(adata, norm_counts_per_cell=1e6, min_vscore_pctl=85, min_counts=3, min_cells=3, in_place=True):
 
     ''' 
     Identifies highly variable genes
@@ -92,51 +91,57 @@ def get_variable_genes(adata, norm_counts_per_cell=1e6, min_vscore_pctl=85, min_
     E = adata.layers['tpm_nolog']
     
     # get variability statistics
-    Vscores, CV_eff, CV_input, ix1, mu_gene, FF_gene, a, b = get_vscores(E) # ix1 = genes for which vscores could be returned
+    stats = {}
+    stats['vscores'], stats['CV_eff'], stats['CV_input'], stats['gene_ix'], stats['mu_gene'], stats['FF_gene'], stats['a'], stats['b'] = get_vscores(E) # gene_ix = genes for which vscores could be returned
+    stats['min_vscore_pctl'] = min_vscore_pctl
 
     # index genes based on vscores percentile
-    ix2 = Vscores > 0 # ix2 = genes for which a positive vscore was obtained
-    min_vscore = np.percentile(Vscores[ix2], min_vscore_pctl)    
-    ix3 = (((E[:, ix1[ix2]] >= min_counts).sum(0).A.squeeze()>= min_cells) & (Vscores[ix2] >= min_vscore)) # ix3 = highly variable genes
+    ix2 = stats['vscores'] > 0 # ix2 = genes for which a positive vscore was obtained
+    stats['min_vscore'] = np.percentile(stats['vscores'][ix2], min_vscore_pctl)    
+    ix3 = (((E[:, gene_ix[ix2]] >= min_counts).sum(0).A.squeeze()>= min_cells) & (stats['vscores'][ix2] >= stats['min_vscore'])) # ix3 = genes passing final min cells & counts thresholds
 
-    # annotate highly variable gene in adata
-    #if 'highly_variable' in adata.var.keys():
-    #    adata.var['highly_variable_older'] = False
-    #    adata.var['highly_variable_older'] = adata.var['highly_variable'].copy()
-    hv_genes = adata.var_names[ix1[ix2][ix3]]
-    adata.var['highly_variable'] = False
-    adata.var.loc[hv_genes, 'highly_variable'] = True
+    # highly variable genes = genes passing all 3 filtering steps: gene_ix, ix2, and ix3
+    stats['hv_genes'] = adata.var_names[gene_ix[ix2][ix3]]
     
-    # save vscore stats 
-    adata.var['vscore'] = np.nan
-    adata.var.loc[adata.var_names[ix1], 'vscore'] = Vscores
-    adata.var['mu_gene'] = np.nan
-    adata.var.loc[adata.var_names[ix1], 'mu_gene'] = mu_gene
-    adata.var['ff_gene'] = np.nan
-    adata.var.loc[adata.var_names[ix1], 'ff_gene'] = FF_gene
-    adata.uns['vscore_stats'] = {'hv_genes': hv_genes,
-                                 'CV_eff': CV_eff,
-                                 'CV_input': CV_input,
-                                 'a': a,
-                                 'b': b,
-                                 'min_vscore': min_vscore}
-
     if in_place:
+      
+        # save gene-level stats to adata.var
+        adata.var['highly_variable'] = False
+        adata.var.loc[stats['hv_genes'], 'highly_variable'] = True
+        adata.var['vscore'] = np.nan
+        adata.var.loc[adata.var_names[gene_ix], 'vscore'] = stats['vscores']
+        adata.var['mu_gene'] = np.nan
+        adata.var.loc[adata.var_names[gene_ix], 'mu_gene'] = stats['mu_gene']
+        adata.var['ff_gene'] = np.nan
+        adata.var.loc[adata.var_names[gene_ix], 'ff_gene'] = stats['FF_gene']
+    
+        # save results dictionary to adata.uns
+        adata.uns['vscore_stats'] = stats
+
+        # return the updated adata object
         return adata
+    
     else:
-        return adata.var, adata.uns['vscore_stats']
+        
+        # just return vscore stats
+        return stats
 
 
-def filter_variable_genes_by_batch(adata, batch_key=None, filter_method='multiple', norm_counts_per_cell=1e6, min_vscore_pctl=85, min_counts=3, min_cells=3, in_place=True):
+def get_variable_genes(adata, batch_key=None, filter_method='multiple', norm_counts_per_cell=1e6, min_vscore_pctl=85, min_counts=3, min_cells=3, in_place=True):
     
     # Filter variable genes based on their representation within individual sample batches
     
-    # If no batch key is provided, then randomly divide the dataset into n groups
-    #if batch_key == None:
-        #x1, x2, x3 = np.array_split((np.random.permutation(adata.n_obs)),3)
-        #print(len(x1),len(x2),len(x3))
+    # compute initial gene variability stats using the entire dataset
+    get_vscores_adata(adata, norm_counts_per_cell=norm_counts_per_cell, min_vscore_pctl=min_vscore_pctl, min_counts=min_counts, min_cells=min_cells)
     
-    # get variable genes for each batch separately
+    # if no batch key is provided, then we are done
+    if batch_key == None:
+        if in_place == True:
+            return adata
+        else:
+            return adata.var['highly_variable']
+
+    # next identify variable genes for each batch separately
     batch_ids = np.unique(adata.obs[batch_key])
     n_batches = len(batch_ids)
     within_batch_hv_genes = []
@@ -144,11 +149,11 @@ def filter_variable_genes_by_batch(adata, batch_key=None, filter_method='multipl
         adata_batch = adata[adata.obs[batch_key] == b].copy()
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
-            _, vscore_stats = get_variable_genes(adata_batch, norm_counts_per_cell=norm_counts_per_cell, min_vscore_pctl=min_vscore_pctl, min_counts=min_counts, min_cells=min_cells, in_place=False)
+            vscore_stats = get_vscores_adata(adata_batch, norm_counts_per_cell=norm_counts_per_cell, min_vscore_pctl=min_vscore_pctl, min_counts=min_counts, min_cells=min_cells, in_place=False)
         hv_genes_this_batch = list(vscore_stats['hv_genes']) 
         within_batch_hv_genes.append(hv_genes_this_batch)
     
-    # set the count threshold based on filter method
+    # set the gene count threshold based on filter method
     if filter_method == 'any':
         count_thresh = 1
     elif filter_method == 'multiple':
@@ -158,7 +163,7 @@ def filter_variable_genes_by_batch(adata, batch_key=None, filter_method='multipl
     elif filter_method == 'all':
         count_thresh = n_batches     
 
-    # perform filtering
+    # perform gene filtering
     within_batch_hv_genes = [g for gene in within_batch_hv_genes for g in gene]
     within_batch_hv_genes, c = np.unique(within_batch_hv_genes, return_counts=True)
     within_batch_hv_genes = within_batch_hv_genes[c >= count_thresh]
@@ -283,7 +288,7 @@ def get_covarying_genes(adata, minimum_correlation=0.2, show_hist=True):
 # IDENTIFY SIGNIFICANT PCA DIMENSIONS
 
 
-def get_significant_pcs(adata, n_iter = 3, n_comps_test = 300, threshold_method='95', show_plots=True, zero_center=True, verbose=True, in_place=True):
+def get_significant_pcs(adata, n_iter = 3, nPCs_test = 300, threshold_method='95', show_plots=True, zero_center=True, verbose=True, in_place=True):
 
     # Subset adata to highly variable genes x cells (counts matrix only)
     adata_tmp = sc.AnnData(adata[:,adata.var.highly_variable].X)
@@ -296,13 +301,13 @@ def get_significant_pcs(adata, n_iter = 3, n_comps_test = 300, threshold_method=
     # Get eigenvalues from pca on data matrix
     if verbose: 
         print('Performing PCA on data matrix')
-    sc.pp.pca(adata_tmp, n_comps=n_comps_test, zero_center=zero_center)
+    sc.pp.pca(adata_tmp, n_comps=nPCs_test, zero_center=zero_center)
     eig = adata_tmp.uns['pca']['variance']
 
     # Get eigenvalues from pca on randomly permuted data matrices
     if verbose: 
         print('Performing PCA on randomized data matrices')
-    eig_rand = np.zeros(shape=(n_iter, n_comps_test))
+    eig_rand = np.zeros(shape=(n_iter, nPCs_test))
     eig_rand_max = []
     n_sig_PCs_trials = []
     for j in range(n_iter):
@@ -325,7 +330,7 @@ def get_significant_pcs(adata, n_iter = 3, n_comps_test = 300, threshold_method=
         else:
           adata_tmp_rand.X = mat
         
-        sc.pp.pca(adata_tmp_rand, n_comps=n_comps_test, zero_center=zero_center)
+        sc.pp.pca(adata_tmp_rand, n_comps=nPCs_test, zero_center=zero_center)
         eig_rand_next = adata_tmp_rand.uns['pca']['variance']
         eig_rand[j,:] = eig_rand_next
         eig_rand_max.append(np.max(eig_rand_next))
@@ -377,7 +382,7 @@ def get_significant_pcs(adata, n_iter = 3, n_comps_test = 300, threshold_method=
         sns.histplot(n_sig_PCs_trials, kde=True, stat='probability', color='#1f77b4') 
         plt.xlabel('# PCs Above Random')
         plt.ylabel('Frequency')
-        plt.xlim([0, n_comps_test])
+        plt.xlim([0, nPCs_test])
         plt.show()
 
     # Print summary stats to screen
@@ -399,10 +404,10 @@ def get_significant_pcs(adata, n_iter = 3, n_comps_test = 300, threshold_method=
 # ESTIMATE DIMENSIONALITY 
 
 
-def run_dim_tests(adata, batch_key=None, gene_filter_method='multiple', dim_test_n_comps_test=300, dim_test_n_trials=3, dim_test_vpctl=None, verbose=True):
+def run_dim_tests(adata, batch_key=None, gene_filter_method='multiple', nPCs_test=300, n_trials=3, vpctl_tests=None, verbose=True):
 
-  if dim_test_vpctl is None:
-    dim_test_vpctl = [99, 97.5, 95, 92.5, 90, 87.5, 85, 82.5, 80, 75, 70, 65, 60, 55, 50]
+  if vpctl_tests is None:
+    vpctl_tests = [99, 97.5, 95, 92.5, 90, 87.5, 85, 82.5, 80, 75, 70, 65, 60, 55, 50]
     
   results_vpctl = []
   results_trial = []
@@ -410,24 +415,21 @@ def run_dim_tests(adata, batch_key=None, gene_filter_method='multiple', dim_test
   results_nPCs_each = []
 
   # Determine # of significant PC dimensions vs randomized data for different numbers of highly variable genes
-  for n, vpctl in enumerate(dim_test_vpctl):
-    if verbose:
-      sys.stdout.write('\rRunning Dimensionality Test %i / %i' % (n+1, len(dim_test_vpctl))); sys.stdout.flush()
+  for n, vpctl in enumerate(vpctl_tests):
+    
+    if verbose: sys.stdout.write('\rRunning Dimensionality Test %i / %i' % (n+1, len(vpctl_tests))); sys.stdout.flush()
     
     # Get and filter variable genes for this vcptl 
-    get_variable_genes(adata, min_vscore_pctl = vpctl)
-    if batch_key != None:
-        filter_variable_genes_by_batch(adata, batch_key=batch_key, filter_method=gene_filter_method, min_vscore_pctl=vpctl)
+    get_variable_genes(adata, batch_key=batch_key, filter_method=gene_filter_method, min_vscore_pctl=vpctl)
+    
+    # nPC dimensions tested cannot exceed the # of variable genes; adjust nPCs_test if needed
+    nPCs_test_use = np.min(nPCs_test, np.sum(adata.var.highly_variable)-1)
     
     # Get # significant PCs for these variable genes & this vcptl
-    if dim_test_n_comps_test > np.sum(adata.var.highly_variable):
-      # nPC dimensions tested cannot exceed the # of variable genes; adjust n_comps_test if needed
-      _, n_sig_PCs_trials = get_significant_pcs(adata, n_iter = dim_test_n_trials, n_comps_test = np.sum(adata.var.highly_variable)-1, show_plots=False, zero_center=True, verbose=False, in_place=False)  
-    else:
-      _, n_sig_PCs_trials = get_significant_pcs(adata, n_iter = dim_test_n_trials, n_comps_test = dim_test_n_comps_test, show_plots=False, zero_center=True, verbose=False, in_place=False)
+    _, n_sig_PCs_trials = get_significant_pcs(adata, n_iter = n_trials, nPCs_test = nPCs_test_use, show_plots=False, zero_center=True, verbose=False, in_place=False)
     
     # Report results from each independent trial
-    for trial in range(0, dim_test_n_trials):
+    for trial in range(0, n_trials):
       results_vpctl.append(vpctl)
       results_trial.append(trial)
       results_nHVgenes.append(np.sum(adata.var.highly_variable))
