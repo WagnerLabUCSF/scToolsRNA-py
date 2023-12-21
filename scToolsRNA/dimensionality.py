@@ -128,6 +128,15 @@ def filter_variable_genes_by_batch(adata, batch_key=None, filter_method='multipl
     
     # Filter variable genes based on their representation within individual sample batches
     
+
+    # If no batch key is provided, then randomly divide the dataset into n groups
+    x1, x2, x3 = np.array_split((np.random.permutation(adata.n_obs)),3)
+    #print(len(x1),len(x2),len(x3))
+    
+
+    
+
+
     # get lists of variable genes that were discovered within each batch
     batch_ids = np.unique(adata.obs[batch_key])
     n_batches = len(batch_ids)
@@ -157,7 +166,6 @@ def filter_variable_genes_by_batch(adata, batch_key=None, filter_method='multipl
     within_batch_hv_genes = within_batch_hv_genes[c >= count_thresh]
     
     # update the highly variable gene flags in adata
-    adata.var['highly_variable_all_batches'] = adata.var['highly_variable']
     adata.var['highly_variable'] = False
     adata.var.loc[within_batch_hv_genes, 'highly_variable'] = True
 
@@ -276,7 +284,7 @@ def get_covarying_genes(adata, minimum_correlation=0.2, show_hist=True):
 # IDENTIFY SIGNIFICANT PCA DIMENSIONS
 
 
-def get_significant_pcs(adata, n_iter = 3, n_comps_test = 200, threshold_method='95', show_plots=True, zero_center=True, verbose=True):
+def get_significant_pcs(adata, n_iter = 3, n_comps_test = 200, threshold_method='95', show_plots=True, zero_center=True, verbose=True, in_place=True):
 
     # Subset adata to highly variable genes x cells (counts matrix only)
     adata_tmp = sc.AnnData(adata[:,adata.var.highly_variable].X)
@@ -297,7 +305,7 @@ def get_significant_pcs(adata, n_iter = 3, n_comps_test = 200, threshold_method=
         print('Performing PCA on randomized data matrices')
     eig_rand = np.zeros(shape=(n_iter, n_comps_test))
     eig_rand_max = []
-    nPCs_above_rand = []
+    n_sig_PCs_trials = []
     for j in range(n_iter):
 
         if verbose: sys.stdout.write('\rIteration %i / %i' % (j+1, n_iter)); sys.stdout.flush()
@@ -322,7 +330,7 @@ def get_significant_pcs(adata, n_iter = 3, n_comps_test = 200, threshold_method=
         eig_rand_next = adata_tmp_rand.uns['pca']['variance']
         eig_rand[j,:] = eig_rand_next
         eig_rand_max.append(np.max(eig_rand_next))
-        nPCs_above_rand.append(np.count_nonzero(eig>np.max(eig_rand_next)))
+        n_sig_PCs_trials.append(np.count_nonzero(eig>np.max(eig_rand_next)))
 
     # Set eigenvalue thresholding method
     if threshold_method == '95':
@@ -367,7 +375,7 @@ def get_significant_pcs(adata, n_iter = 3, n_comps_test = 200, threshold_method=
 
         # Plot nPCs above rand histograms
         sns.set_context(rc = {'patch.linewidth': 0.0})
-        sns.histplot(nPCs_above_rand, kde=True, stat='probability', color='#1f77b4') 
+        sns.histplot(n_sig_PCs_trials, kde=True, stat='probability', color='#1f77b4') 
         plt.xlabel('# PCs Above Random')
         plt.ylabel('Frequency')
         plt.xlim([0, n_comps_test])
@@ -379,10 +387,12 @@ def get_significant_pcs(adata, n_iter = 3, n_comps_test = 200, threshold_method=
         print('Eigenvalue Threshold =', np.round(eig_thresh, 2))
         print('# Significant PCs =', n_sig_PCs)
 
-    adata.uns['n_sig_PCs'] = n_sig_PCs
-    adata.uns['n_sig_PCs_trials'] = nPCs_above_rand
-
-    return adata
+    if in_place:
+        adata.uns['n_sig_PCs'] = n_sig_PCs
+        adata.uns['n_sig_PCs_trials'] = n_sig_PCs_trials
+        return adata
+    else:
+        return n_sig_PCs, n_sig_PCs_trials
 
 
 
@@ -406,23 +416,23 @@ def run_dim_tests(adata, batch_key=None, gene_filter_method='multiple', dim_test
       sys.stdout.write('\rRunning Dimensionality Test %i / %i' % (n+1, len(dim_test_vpctl))); sys.stdout.flush()
     
     # Get and filter variable genes for this vcptl 
-    adata = get_variable_genes(adata, min_vscore_pctl = vpctl)
+    get_variable_genes(adata, min_vscore_pctl = vpctl)
     if batch_key != None:
-        adata = filter_variable_genes_by_batch(adata, batch_key=batch_key, filter_method=gene_filter_method, min_vscore_pctl=vpctl)
+        filter_variable_genes_by_batch(adata, batch_key=batch_key, filter_method=gene_filter_method, min_vscore_pctl=vpctl)
     
     # Get # significant PCs for these variable genes & this vcptl
     if dim_test_n_comps_test > np.sum(adata.var.highly_variable):
       # nPC dimensions tested cannot exceed the # of variable genes; adjust n_comps_test if needed
-      adata = get_significant_pcs(adata, n_iter = dim_test_n_trials, n_comps_test = np.sum(adata.var.highly_variable)-1, show_plots=False, zero_center=True, verbose=False)  
+      _, n_sig_PCs_trials = get_significant_pcs(adata, n_iter = dim_test_n_trials, n_comps_test = np.sum(adata.var.highly_variable)-1, show_plots=False, zero_center=True, verbose=False, in_place=False)  
     else:
-      adata = get_significant_pcs(adata, n_iter = dim_test_n_trials, n_comps_test = dim_test_n_comps_test, show_plots=False, zero_center=True, verbose=False)
+      _, n_sig_PCs_trials = get_significant_pcs(adata, n_iter = dim_test_n_trials, n_comps_test = dim_test_n_comps_test, show_plots=False, zero_center=True, verbose=False, in_place=False)
     
     # Report results from each independent trial
     for trial in range(0, dim_test_n_trials):
       results_vpctl.append(vpctl)
       results_trial.append(trial)
       results_nHVgenes.append(np.sum(adata.var.highly_variable))
-      results_nPCs_each.append(adata.uns['n_sig_PCs_trials'][trial])
+      results_nPCs_each.append(n_sig_PCs_trials[trial])
 
   # Export results to adata.uns
   results = pd.DataFrame({'vscore_pct': results_vpctl, 'trial': results_trial,'n_hv_genes': results_nHVgenes, 'n_sig_PCs': results_nPCs_each})
