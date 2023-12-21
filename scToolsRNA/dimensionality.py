@@ -82,7 +82,7 @@ def runningquantile(x, y, p, nBins):
     return xOut, yOut
 
 
-def get_variable_genes(adata, norm_counts_per_cell=1e6, min_vscore_pctl=85, min_counts=3, min_cells=3):
+def get_variable_genes(adata, norm_counts_per_cell=1e6, min_vscore_pctl=85, min_counts=3, min_cells=3, in_place=True):
 
     ''' 
     Identifies highly variable genes
@@ -121,33 +121,31 @@ def get_variable_genes(adata, norm_counts_per_cell=1e6, min_vscore_pctl=85, min_
                                  'b': b,
                                  'min_vscore': min_vscore}
 
-    return adata
+    if in_place:
+        return adata
+    else:
+        return adata.var, adata.uns['vscore_stats']
 
 
-def filter_variable_genes_by_batch(adata, batch_key=None, filter_method='multiple', norm_counts_per_cell=1e6, min_vscore_pctl=85, min_counts=3, min_cells=3):
+def filter_variable_genes_by_batch(adata, batch_key=None, filter_method='multiple', norm_counts_per_cell=1e6, min_vscore_pctl=85, min_counts=3, min_cells=3, in_place=True):
     
     # Filter variable genes based on their representation within individual sample batches
     
-
     # If no batch key is provided, then randomly divide the dataset into n groups
-    x1, x2, x3 = np.array_split((np.random.permutation(adata.n_obs)),3)
-    #print(len(x1),len(x2),len(x3))
+    #if batch_key == None:
+        #x1, x2, x3 = np.array_split((np.random.permutation(adata.n_obs)),3)
+        #print(len(x1),len(x2),len(x3))
     
-
-    
-
-
-    # get lists of variable genes that were discovered within each batch
+    # get variable genes for each batch separately
     batch_ids = np.unique(adata.obs[batch_key])
     n_batches = len(batch_ids)
     within_batch_hv_genes = []
     for b in batch_ids:
         adata_batch = adata[adata.obs[batch_key] == b].copy()
-        sc.pp.filter_cells(adata_batch, min_genes=200)
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
-            adata_batch = get_variable_genes(adata_batch, norm_counts_per_cell=norm_counts_per_cell, min_vscore_pctl=min_vscore_pctl, min_counts=min_counts, min_cells=min_cells)
-        hv_genes_this_batch = list(adata_batch.uns['vscore_stats']['hv_genes']) 
+            _, vscore_stats = get_variable_genes(adata_batch, norm_counts_per_cell=norm_counts_per_cell, min_vscore_pctl=min_vscore_pctl, min_counts=min_counts, min_cells=min_cells, in_place=False)
+        hv_genes_this_batch = list(vscore_stats['hv_genes']) 
         within_batch_hv_genes.append(hv_genes_this_batch)
     
     # set the count threshold based on filter method
@@ -164,12 +162,13 @@ def filter_variable_genes_by_batch(adata, batch_key=None, filter_method='multipl
     within_batch_hv_genes = [g for gene in within_batch_hv_genes for g in gene]
     within_batch_hv_genes, c = np.unique(within_batch_hv_genes, return_counts=True)
     within_batch_hv_genes = within_batch_hv_genes[c >= count_thresh]
-    
-    # update the highly variable gene flags in adata
     adata.var['highly_variable'] = False
     adata.var.loc[within_batch_hv_genes, 'highly_variable'] = True
 
-    return adata
+    if in_place:
+        return adata
+    else:
+        return adata.var['highly_variable']
 
 
 def plot_gene_ff(adata, gene_ix=None, color=None):
@@ -284,7 +283,7 @@ def get_covarying_genes(adata, minimum_correlation=0.2, show_hist=True):
 # IDENTIFY SIGNIFICANT PCA DIMENSIONS
 
 
-def get_significant_pcs(adata, n_iter = 3, n_comps_test = 200, threshold_method='95', show_plots=True, zero_center=True, verbose=True, in_place=True):
+def get_significant_pcs(adata, n_iter = 3, n_comps_test = 300, threshold_method='95', show_plots=True, zero_center=True, verbose=True, in_place=True):
 
     # Subset adata to highly variable genes x cells (counts matrix only)
     adata_tmp = sc.AnnData(adata[:,adata.var.highly_variable].X)
