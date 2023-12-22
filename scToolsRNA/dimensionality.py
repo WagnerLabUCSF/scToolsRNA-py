@@ -118,8 +118,7 @@ def get_vscores_adata(adata, norm_counts_per_cell=1e6, min_vscore_pctl=85, min_c
         # save results dictionary to adata.uns
         adata.uns['vscore_stats'] = stats
 
-        # return the updated adata object
-        return adata
+        return None
     
     else:
         
@@ -171,7 +170,7 @@ def get_variable_genes(adata, batch_key=None, filter_method='multiple', norm_cou
     adata.var.loc[within_batch_hv_genes, 'highly_variable'] = True
 
     if in_place:
-        return adata
+        return None
     else:
         return adata.var['highly_variable']
 
@@ -394,7 +393,7 @@ def get_significant_pcs(adata, n_iter = 3, nPCs_test = 300, threshold_method='95
     if in_place:
         adata.uns['n_sig_PCs'] = n_sig_PCs
         adata.uns['n_sig_PCs_trials'] = n_sig_PCs_trials
-        return adata
+        return None
     else:
         return n_sig_PCs, n_sig_PCs_trials
 
@@ -407,7 +406,8 @@ def get_significant_pcs(adata, n_iter = 3, nPCs_test = 300, threshold_method='95
 def run_dim_tests(adata, batch_key=None, gene_filter_method='multiple', nPCs_test=300, n_trials=3, vpctl_tests=None, verbose=True):
 
   if vpctl_tests is None:
-    vpctl_tests = [99, 97.5, 95, 92.5, 90, 87.5, 85, 82.5, 80, 75, 70, 65, 60, 55, 50]
+    #vpctl_tests = [99, 97.5, 95, 92.5, 90, 87.5, 85, 82.5, 80, 77.5, 75, 72.5, 70, 67.5, 65, 62.5, 60]
+    vpctl_tests = [99, 95, 90, 85, 80, 75, 70, 65, 60]
     
   results_vpctl = []
   results_trial = []
@@ -453,5 +453,4 @@ def run_dim_tests(adata, batch_key=None, gene_filter_method='multiple', nPCs_tes
   ax.invert_xaxis()
   plt.show()
 
-  return adata
 
