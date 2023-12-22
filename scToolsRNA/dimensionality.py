@@ -175,7 +175,7 @@ def get_variable_genes(adata, batch_key=None, filter_method='multiple', norm_cou
         return adata.var['highly_variable']
 
 
-def plot_gene_ff(adata, gene_ix=None, color=None):
+def plot_ff(adata, gene_ix=None, color=None):
 
   if gene_ix == None:
     gene_ix = adata.var['highly_variable']
@@ -204,7 +204,7 @@ def plot_gene_ff(adata, gene_ix=None, color=None):
   plt.show()
 
 
-def plot_gene_vscores(adata, gene_ix=None, color=None):
+def plot_vscores(adata, gene_ix=None, color=None):
 
   if gene_ix == None:
     gene_ix = adata.var['highly_variable']
@@ -228,7 +228,7 @@ def plot_gene_vscores(adata, gene_ix=None, color=None):
   plt.show()
 
  
-def get_covarying_genes(adata, minimum_correlation=0.2, show_hist=True):
+def get_covar_genes(adata, minimum_correlation=0.2, show_hist=True):
 
     # Subset adata to highly variable genes x cells (counts matrix only)
     adata_tmp = sc.AnnData(adata[:,adata.var.highly_variable].X)
@@ -287,7 +287,7 @@ def get_covarying_genes(adata, minimum_correlation=0.2, show_hist=True):
 # IDENTIFY SIGNIFICANT PCA DIMENSIONS
 
 
-def get_significant_pcs(adata, n_iter = 3, nPCs_test = 300, threshold_method='95', show_plots=True, zero_center=True, verbose=True, in_place=True):
+def get_sig_pcs(adata, n_iter = 3, nPCs_test = 300, threshold_method='95', show_plots=True, zero_center=True, verbose=True, in_place=True):
 
     # Subset adata to highly variable genes x cells (counts matrix only)
     adata_tmp = sc.AnnData(adata[:,adata.var.highly_variable].X)
@@ -400,7 +400,6 @@ def get_significant_pcs(adata, n_iter = 3, nPCs_test = 300, threshold_method='95
 
 
 
-
 # ESTIMATE DIMENSIONALITY 
 
 
@@ -427,7 +426,7 @@ def run_dim_tests(adata, batch_key=None, gene_filter_method='multiple', nPCs_tes
     nPCs_test_use = np.min([nPCs_test, np.sum(adata.var.highly_variable)-1])
     
     # Get # significant PCs for these variable genes & this vcptl
-    _, n_sig_PCs_trials = get_significant_pcs(adata, n_iter = n_trials, nPCs_test = nPCs_test_use, show_plots=False, zero_center=True, verbose=False, in_place=False)
+    _, n_sig_PCs_trials = get_sig_pcs(adata, n_iter = n_trials, nPCs_test = nPCs_test_use, show_plots=False, zero_center=True, verbose=False, in_place=False)
     
     # Report results from each independent trial
     for trial in range(0, n_trials):
@@ -454,4 +453,12 @@ def run_dim_tests(adata, batch_key=None, gene_filter_method='multiple', nPCs_tes
   ax.invert_xaxis()
   plt.show()
 
+
+
+
+
+
+# LEGACY ALIASES
+
+get_significant_pcs = get_sig_pcs
 
