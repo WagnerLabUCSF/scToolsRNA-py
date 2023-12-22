@@ -407,8 +407,8 @@ def get_significant_pcs(adata, n_iter = 3, nPCs_test = 300, threshold_method='95
 def run_dim_tests(adata, batch_key=None, gene_filter_method='multiple', nPCs_test=300, n_trials=3, vpctl_tests=None, verbose=True):
 
   if vpctl_tests is None:
-    #vpctl_tests = [99, 97.5, 95, 92.5, 90, 87.5, 85, 82.5, 80, 77.5, 75, 72.5, 70, 67.5, 65, 62.5, 60]
-    vpctl_tests = [99, 95, 90, 85, 80, 75, 70, 65, 60]
+    vpctl_tests = [99, 97.5, 95, 92.5, 90, 87.5, 85, 82.5, 80, 77.5, 75, 72.5, 70, 67.5, 65, 62.5, 60]
+    #vpctl_tests = [99, 95, 90, 85, 80, 75, 70, 65, 60]
     
   results_vpctl = []
   results_trial = []
