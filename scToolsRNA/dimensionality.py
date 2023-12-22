@@ -98,10 +98,10 @@ def get_vscores_adata(adata, norm_counts_per_cell=1e6, min_vscore_pctl=85, min_c
     # index genes based on vscores percentile
     ix2 = stats['vscores'] > 0 # ix2 = genes for which a positive vscore was obtained
     stats['min_vscore'] = np.percentile(stats['vscores'][ix2], min_vscore_pctl)    
-    ix3 = (((E[:, gene_ix[ix2]] >= min_counts).sum(0).A.squeeze()>= min_cells) & (stats['vscores'][ix2] >= stats['min_vscore'])) # ix3 = genes passing final min cells & counts thresholds
+    ix3 = (((E[:, stats['gene_ix'][ix2]] >= min_counts).sum(0).A.squeeze()>= min_cells) & (stats['vscores'][ix2] >= stats['min_vscore'])) # ix3 = genes passing final min cells & counts thresholds
 
     # highly variable genes = genes passing all 3 filtering steps: gene_ix, ix2, and ix3
-    stats['hv_genes'] = adata.var_names[gene_ix[ix2][ix3]]
+    stats['hv_genes'] = adata.var_names[stats['gene_ix'][ix2][ix3]]
     
     if in_place:
       
@@ -109,11 +109,11 @@ def get_vscores_adata(adata, norm_counts_per_cell=1e6, min_vscore_pctl=85, min_c
         adata.var['highly_variable'] = False
         adata.var.loc[stats['hv_genes'], 'highly_variable'] = True
         adata.var['vscore'] = np.nan
-        adata.var.loc[adata.var_names[gene_ix], 'vscore'] = stats['vscores']
+        adata.var.loc[adata.var_names[stats['gene_ix']], 'vscore'] = stats['vscores']
         adata.var['mu_gene'] = np.nan
-        adata.var.loc[adata.var_names[gene_ix], 'mu_gene'] = stats['mu_gene']
+        adata.var.loc[adata.var_names[stats['gene_ix']], 'mu_gene'] = stats['mu_gene']
         adata.var['ff_gene'] = np.nan
-        adata.var.loc[adata.var_names[gene_ix], 'ff_gene'] = stats['FF_gene']
+        adata.var.loc[adata.var_names[stats['gene_ix']], 'ff_gene'] = stats['FF_gene']
     
         # save results dictionary to adata.uns
         adata.uns['vscore_stats'] = stats
