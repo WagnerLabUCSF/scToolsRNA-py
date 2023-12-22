@@ -394,6 +394,7 @@ def get_significant_pcs(adata, n_iter = 3, nPCs_test = 300, threshold_method='95
         adata.uns['n_sig_PCs'] = n_sig_PCs
         adata.uns['n_sig_PCs_trials'] = n_sig_PCs_trials
         return None
+    
     else:
         return n_sig_PCs, n_sig_PCs_trials
 
