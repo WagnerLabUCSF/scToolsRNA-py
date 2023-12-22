@@ -423,7 +423,7 @@ def run_dim_tests(adata, batch_key=None, gene_filter_method='multiple', nPCs_tes
     get_variable_genes(adata, batch_key=batch_key, filter_method=gene_filter_method, min_vscore_pctl=vpctl)
     
     # nPC dimensions tested cannot exceed the # of variable genes; adjust nPCs_test if needed
-    nPCs_test_use = np.min(nPCs_test, np.sum(adata.var.highly_variable)-1)
+    nPCs_test_use = np.min([nPCs_test, np.sum(adata.var.highly_variable)-1])
     
     # Get # significant PCs for these variable genes & this vcptl
     _, n_sig_PCs_trials = get_significant_pcs(adata, n_iter = n_trials, nPCs_test = nPCs_test_use, show_plots=False, zero_center=True, verbose=False, in_place=False)
