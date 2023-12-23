@@ -299,19 +299,20 @@ def get_sig_pcs(adata, n_iter = 3, nPCs_test = 300, threshold_method='95', show_
 
     # Get eigenvalues from pca on data matrix
     if verbose: 
-        print('Performing PCA on data matrix')
+        print('Performing PCA on data')
     sc.pp.pca(adata_tmp, n_comps=nPCs_test, zero_center=zero_center)
     eig = adata_tmp.uns['pca']['variance']
 
     # Get eigenvalues from pca on randomly permuted data matrices
     if verbose: 
-        print('Performing PCA on randomized data matrices')
+        print('Performing PCA on randomized data')
     eig_rand = np.zeros(shape=(n_iter, nPCs_test))
     eig_rand_max = []
     n_sig_PCs_trials = []
     for j in range(n_iter):
 
-        if verbose: sys.stdout.write('\rIteration %i / %i' % (j+1, n_iter)); sys.stdout.flush()
+        if verbose and n_iter>1: sys.stdout.write('\rIteration %i / %i' % (j+1, n_iter)); sys.stdout.flush()
+        
         adata_tmp_rand = adata_tmp.copy()
         
         if sparse:
@@ -386,6 +387,7 @@ def get_sig_pcs(adata, n_iter = 3, nPCs_test = 300, threshold_method='95', show_
 
     # Print summary stats to screen
     if verbose: 
+        print()
         print(method_string)
         print('Eigenvalue Threshold =', np.round(eig_thresh, 2))
         print('# Significant PCs =', n_sig_PCs)
@@ -403,7 +405,7 @@ def get_sig_pcs(adata, n_iter = 3, nPCs_test = 300, threshold_method='95', show_
 # ESTIMATE DIMENSIONALITY 
 
 
-def run_dim_tests(adata, batch_key=None, gene_filter_method='multiple', nPCs_test=300, n_trials=3, vpctl_tests=None, verbose=True):
+def run_dim_tests_vscore(adata, batch_key=None, gene_filter_method='multiple', nPCs_test=300, n_trials=3, vpctl_tests=None, verbose=True):
 
   if vpctl_tests is None:
     vpctl_tests = [99, 97.5, 95, 92.5, 90, 87.5, 85, 82.5, 80, 77.5, 75, 72.5, 70, 67.5, 65, 62.5, 60]
@@ -453,6 +455,55 @@ def run_dim_tests(adata, batch_key=None, gene_filter_method='multiple', nPCs_tes
   ax.invert_xaxis()
   plt.show()
 
+
+def run_dim_tests_scanpy(adata, batch_key=None, nPCs_test=300, n_trials=3, min_disp_tests=None, verbose=True):
+
+  if min_disp_tests is None:
+    min_disp_tests = [0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.2, 1.4, 1.6, 1.8, 2]
+    
+    
+  results_min_disp = []
+  results_trial = []
+  results_nHVgenes = []
+  results_nPCs_each = []
+
+  # Determine # of significant PC dimensions vs randomized data for different numbers of highly variable genes
+  for n, min_disp in enumerate(min_disp_tests):
+    
+    if verbose: sys.stdout.write('\rRunning Dimensionality Test %i / %i' % (n+1, len(min_disp_tests))); sys.stdout.flush()
+    
+    # Get and filter variable genes for this vcptl 
+    sc.pp.highly_variable_genes(adata, batch_key=batch_key, layer='tpm', min_mean=0.05, max_mean=10, n_bins=50, min_disp=min_disp)
+    
+    # nPC dimensions tested cannot exceed the # of variable genes; adjust nPCs_test if needed
+    nPCs_test_use = np.min([nPCs_test, np.sum(adata.var.highly_variable)-1])
+    
+    # Get # significant PCs for these variable genes & this vcptl
+    _, n_sig_PCs_trials = get_significant_pcs(adata, n_iter = n_trials, nPCs_test = nPCs_test_use, show_plots=False, zero_center=True, verbose=False, in_place=False)
+    
+    # Report results from each independent trial
+    for trial in range(0, n_trials):
+      results_min_disp.append(min_disp)
+      results_trial.append(trial)
+      results_nHVgenes.append(np.sum(adata.var.highly_variable))
+      results_nPCs_each.append(n_sig_PCs_trials[trial])
+
+  # Export results to adata.uns
+  results = pd.DataFrame({'min_disp': results_min_disp, 'trial': results_trial,'n_hv_genes': results_nHVgenes, 'n_sig_PCs': results_nPCs_each})
+  adata.uns['dim_test_results'] = results 
+
+  # Generate line plot
+  plt.figure()
+  ax = plt.subplot(111)
+  sns.lineplot(x=results.min_disp, y=results.n_sig_PCs)
+  ymin, ymax = ax.get_ylim()
+  label_gap = (ymax - ymin) / 50 
+  ix = results.trial==0
+  [ax.text(x, ymax+label_gap, name, rotation=90, horizontalalignment='center') for x, y, name in zip(results[ix].min_disp, results[ix].n_sig_PCs, results[ix].n_hv_genes)]
+  plt.ylabel('# PCs Above Random')
+  plt.xlabel('Minimum Normalized Dispersion')
+  ax.invert_xaxis()
+  plt.show()
 
 
 
