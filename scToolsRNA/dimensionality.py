@@ -115,8 +115,10 @@ def get_vscores_adata(adata, norm_counts_per_cell=1e6, min_vscore_pctl=85, min_c
         adata.var['ff_gene'] = np.nan
         adata.var.loc[adata.var_names[stats['gene_ix']], 'ff_gene'] = stats['FF_gene']
     
-        # save results dictionary to adata.uns
+        # save vscore results to adata.uns
         adata.uns['vscore_stats'] = stats
+        adata.uns['vscore_stats']['hv_genes'] = list(adata.uns['vscore_stats']['hv_genes'])
+
 
         return None
     
@@ -126,7 +128,7 @@ def get_vscores_adata(adata, norm_counts_per_cell=1e6, min_vscore_pctl=85, min_c
         return stats
 
 
-def get_variable_genes(adata, batch_key=None, filter_method='multiple', norm_counts_per_cell=1e6, min_vscore_pctl=85, min_counts=3, min_cells=3, in_place=True):
+def get_variable_genes(adata, batch_key=None, filter_method='all', norm_counts_per_cell=1e6, min_vscore_pctl=85, min_counts=3, min_cells=3, in_place=True):
     
     # Filter variable genes based on their representation within individual sample batches
     

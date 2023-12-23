@@ -31,7 +31,7 @@ def pp_get_embedding(adata, batch_key=None, n_neighbors=10):
 	if batch_key == None:
 		sc.pp.neighbors(adata, n_neighbors=10, n_pcs=adata.uns['n_sig_PCs'], metric='euclidean', use_rep='X_pca')
 	else:
-		sc.external.pp.harmony_integrate(adata, batch_key, basis='X_pca', adjusted_basis='X_pca_harmony')
+		sc.external.pp.harmony_integrate(adata, batch_key, basis='X_pca', adjusted_basis='X_pca_harmony', max_iter_harmony=20, random_state=0, verbose=False)
 		sc.pp.neighbors(adata, n_neighbors=10, n_pcs=adata.uns['n_sig_PCs'], metric='euclidean', use_rep='X_pca_harmony')
 
 	# Generate UMAP embedding
