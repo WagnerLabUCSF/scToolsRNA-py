@@ -14,13 +14,20 @@ import plotly.express as px
 
 def plot_umap3d(adata, color):
   
-    # Generate 3D UMAP and store coordinates in obsm; preserve 2D coordinates if they exist
-    if 'X_umap' in adata.obsm:
-        tmp = adata.obsm['X_umap'].copy()
-    sc.tl.umap(adata, n_components=3)
-    adata.obsm['X_umap_3d'] = adata.obsm['X_umap']
-    adata.obsm['X_umap']=tmp
-  
+    # Generate or use existing 3D UMAP coordinates in obsm; preserve 2D coordinates if needed
+    if 'X_umap_3d' not in adata.obsm:        
+        calc_umap3d = True
+        if 'X_umap' in adata.obsm:
+            adata.obsm['X_umap_2d'] = adata.obsm['X_umap'].copy()
+        sc.tl.umap(adata, n_components=3)       
+        adata.obsm['X_umap_3d'] = adata.obsm['X_umap'].copy()
+    else:
+        calc_umap3d = False
+
+    # Reset the default X_umap embedding to the 2d version
+    if 'X_umap_2d' in adata.obsm and calc_umap3d:  
+        adata.obsm['X_umap'] = adata.obsm['X_umap_2d'].copy()
+
     # Generate the plot using Plotly express
     fig = px.scatter_3d(pd.DataFrame(adata.obsm['X_umap_3d']), 
                       x=0, y=1, z=2, 
@@ -36,6 +43,7 @@ def plot_umap3d(adata, color):
     fig.update_traces(marker=dict(line=dict(width=0)))
   
     fig.show()
+
 
 
 def format_axes(eq_aspect='all', rm_colorbar=False):
