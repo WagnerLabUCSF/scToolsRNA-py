@@ -12,7 +12,7 @@ import plotly.express as px
 # PLOTTING
 
 
-def plot_umap3d(adata, color):
+def plot_umap3d(adata, color, window_height=1200):
   
     # Generate or use existing 3D UMAP coordinates in obsm; preserve 2D coordinates if needed
     if 'X_umap_3d' not in adata.obsm:        
@@ -26,15 +26,15 @@ def plot_umap3d(adata, color):
 
     # Reset the default X_umap embedding to the 2d version
     if 'X_umap_2d' in adata.obsm and calc_umap3d:  
-        adata.obsm['X_umap'] = adata.obsm['X_umap_2d'].copy()
+        adata.obsm['X_umap'] = adata.obsm['X_umap_2d']
 
     # Generate the plot using Plotly express
     fig = px.scatter_3d(pd.DataFrame(adata.obsm['X_umap_3d']), 
                       x=0, y=1, z=2, 
                       size_max=8, size=np.repeat(1,len(adata)), 
                       opacity=1, color=sc.get.obs_df(adata, color, layer='raw').tolist(), 
-                      color_discrete_sequence=sc.pl.palettes.default_20, color_continuous_scale=px.colors.sequential.Viridis)#,
-                      #height=plot_window_height, width=plot_window_width)
+                      color_discrete_sequence=sc.pl.palettes.default_20, color_continuous_scale=px.colors.sequential.Viridis,
+                      height=window_height)
   
     fig.update_layout(scene = dict(xaxis = dict(visible=False), yaxis = dict(visible=False), zaxis = dict(visible=False)), 
                     scene_dragmode='orbit', scene_camera = dict(eye=dict(x=0, y=0, z=1.5)), 
