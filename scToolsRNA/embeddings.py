@@ -12,7 +12,7 @@ import plotly.express as px
 # PLOTTING
 
 
-def plot_umap3d(adata, color, window_height=1200):
+def plot_umap3d(adata, color, window_height=1000):
   
     # Generate or use existing 3D UMAP coordinates in obsm; preserve 2D coordinates if needed
     if 'X_umap_3d' not in adata.obsm:        
