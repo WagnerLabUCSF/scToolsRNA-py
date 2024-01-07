@@ -36,12 +36,12 @@ def stitch(adata, timepoint_obs, n_neighbors=200, distance='correlation', vscore
       adata_t2 = adata_list[n+1].copy()
 
       # Normalize the two timepoints separately
-      dew.pp_raw2norm(adata_t1)
-      dew.pp_raw2norm(adata_t2)
+      pp_raw2norm(adata_t1)
+      pp_raw2norm(adata_t2)
 
       # Define variable genes and nPCs for t2
-      dew.get_variable_genes(adata_t2, batch_key=vscore_batch_key, filter_method=vscore_filter_method, min_vscore_pctl=vscore_min_pctl)
-      dew.get_significant_pcs(adata_t2, n_iter=1, show_plots=False, verbose=False)
+      get_variable_genes(adata_t2, batch_key=vscore_batch_key, filter_method=vscore_filter_method, min_vscore_pctl=vscore_min_pctl)
+      get_significant_pcs(adata_t2, n_iter=1, show_plots=False, verbose=False)
       print(np.sum(np.sum(adata_t2.var['highly_variable'])), adata_t2.uns['n_sig_PCs'])
 
       # Get a pca embedding for t2
