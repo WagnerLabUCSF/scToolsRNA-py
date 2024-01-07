@@ -41,7 +41,8 @@ def stitch(adata, timepoint_obs, n_neighbors=200, distance='correlation', vscore
 
       # Define variable genes and nPCs for t2
       get_variable_genes(adata_t2, batch_key=vscore_batch_key, filter_method=vscore_filter_method, min_vscore_pctl=vscore_min_pctl)
-      get_significant_pcs(adata_t2, n_iter=1, show_plots=False, verbose=False)
+      nPCs_test_use = np.min([300, np.sum(adata_t2.var.highly_variable)-1])
+      get_significant_pcs(adata_t2, n_iter=1, nPCs_test = nPCs_test_use, show_plots=False, verbose=False)
       print(np.sum(np.sum(adata_t2.var['highly_variable'])), adata_t2.uns['n_sig_PCs'])
 
       # Get a pca embedding for t2
