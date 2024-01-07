@@ -1,5 +1,11 @@
+import warnings
+import pandas as pd
+import scanpy as sc
 import numpy as np
 import scipy
+from .dimensionality import *
+from .workflows import *
+
 
 def stitch(adata, timepoint_obs, n_neighbors=200, distance='correlation', vscore_min_pctl=95, vscore_batch_key=None, vscore_filter_method=None):
 
@@ -72,8 +78,7 @@ def stitch(adata, timepoint_obs, n_neighbors=200, distance='correlation', vscore
   combined_edge_df = pd.concat(edge_lists)
 
   # Convert the edge list back to a csr graph
-  connectivities = scipy.sparse.coo_matrix((combined_edge_df['connectivity'], (combined_edge_df['n1'], combined_edge_df['n2']))).tocsr()
-  adata.obsp['connectivities'] = connectivities
+  adata.obsp['connectivities'] = scipy.sparse.coo_matrix((combined_edge_df['connectivity'], (combined_edge_df['n1'], combined_edge_df['n2']))).tocsr()
 
   # Generate a combined UMAP for all timepoints
   adata.uns['neighbors'] = stitch_neighbors_settings
