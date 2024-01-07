@@ -11,13 +11,12 @@ def stitch(adata, timepoint_obs, n_neighbors=200, distance='correlation', vscore
 
   # Determine the # of timepoints in adata
   timepoint_list = np.unique(adata.obs[timepoint_obs])
-  print(timepoint_list)
   n_timepoints = len(timepoint_list)
   n_stitch_rounds = n_timepoints - 1
 
-  # Sort adata by timepoint
+  # Sort the cells in adata by timepoint
   time_sort_index = adata.obs['stage.integer'].sort_values(inplace=False).index
-  adata = adata[time_sort_index,:]
+  adata = adata[time_sort_index,:].copy()
 
   # Generate a list of individual timepoint adatas
   adata_list = []
@@ -27,17 +26,14 @@ def stitch(adata, timepoint_obs, n_neighbors=200, distance='correlation', vscore
   # Get edge lists for each timepoint pair
   base_counter = 0
   edge_lists = []
-
   with warnings.catch_warnings():
     warnings.simplefilter('ignore')
     for n in range(n_stitch_rounds):
-      print('This is round:', n+1)
+      print('Stitching Timepoints:', timepoint_list[n], '-', timepoint_list[n+1])
 
       # Specify individual adatas for the two timepoints in this round
       adata_t1 = adata_list[n].copy()
       adata_t2 = adata_list[n+1].copy()
-
-      print(np.unique(adata_t2.obs[timepoint_obs]))
 
       # Normalize the two timepoints separately
       dew.pp_raw2norm(adata_t1)
@@ -78,7 +74,7 @@ def stitch(adata, timepoint_obs, n_neighbors=200, distance='correlation', vscore
   combined_edge_df = pd.concat(edge_lists)
 
   # Convert the edge list back to a csr graph
-  adata.obsp['connectivities'] = scipy.sparse.coo_matrix((combined_edge_df['connectivity'], (combined_edge_df['n1'], combined_edge_df['n2']))).tocsr()
+  adata.obsp['connectivities'] = scipy.sparse.coo_matrix((combined_edge_df['connectivity'], (combined_edge_df['n1'], combined_edge_df['n2']))).tocsr().copy()
 
   # Generate a combined UMAP for all timepoints
   adata.uns['neighbors'] = stitch_neighbors_settings
