@@ -53,18 +53,18 @@ def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric
       nPCs_test_use = np.min([300, np.sum(adata_t2.var.highly_variable)-1])
       get_significant_pcs(adata_t2, n_iter=1, nPCs_test = nPCs_test_use, show_plots=False, verbose=False)
       print(np.sum(np.sum(adata_t2.var['highly_variable'])), adata_t2.uns['n_sig_PCs'])
-      
+
       # Get a pca embedding for t2
       sc.pp.pca(adata_t2, n_comps=adata_t2.uns['n_sig_PCs'], zero_center=True)
       sc.pp.neighbors(adata_t2, n_neighbors=n_neighbors, n_pcs=adata_t2.uns['n_sig_PCs'], metric=distance_metric, use_rep='X_pca')
-      
+
       # Project t1 into the pca subspace defined for t2
       sc.tl.ingest(adata_t1, adata_t2, embedding_method='pca')
 
       # Concatenate the pca projections for t1 & t2
       adata_t1t2 = adata_t1.concatenate(adata_t2, batch_categories=['t1', 't2'])
 
-      # Generate a t1-t2 neighbor graph in the joint pca space 
+      # Generate a t1-t2 neighbor graph in the joint pca space
       if True: # include Harmony batch correction
         sc.external.pp.harmony_integrate(adata_t1t2, batch_obs, basis='X_pca', adjusted_basis='X_pca_harmony', max_iter_harmony=20, verbose=False)
         sc.pp.neighbors(adata_t1t2, n_neighbors=n_neighbors, metric=distance_metric, use_rep='X_pca_harmony')
@@ -72,7 +72,7 @@ def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric
       else: # version without Harmony
         sc.pp.neighbors(adata_t1t2, n_neighbors=n_neighbors, metric=distance_metric)
         stitch_neighbors_settings = adata_t1t2.uns['neighbors']
-        
+
       # Convert csr graph connectivities to an edge list
       X = adata_t1t2.obsp['connectivities']
       edge_df = pd.DataFrame([[n1, n2, X[n1,n2]] for n1, n2 in zip(*X.nonzero())], columns=['n1','n2','connectivity'])
