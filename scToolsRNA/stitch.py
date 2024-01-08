@@ -8,15 +8,13 @@ from .workflows import *
 
 
 # (from ingest)
-def project_to_pca(self, n_pcs=None):
-    X = self._adata_new.X
-    X = X.toarray() if issparse(X) else X.copy()
-    if self._pca_use_hvg:
-        X = X[:, self._adata_ref.var["highly_variable"]]
-    if self._pca_centered:
-        X -= X.mean(axis=0)
-    X_pca = np.dot(X, self._pca_basis[:, :n_pcs])
-    return X_pca
+#def project_to_pca(adata, n_pcs=None):
+#    X = adata.X
+#    X = X.toarray() if issparse(X) else X.copy()
+#    X = X[:, adata_ref.var["highly_variable"]]
+#    X_pca = np.dot(X, adata.varm["PCs"][:, :n_pcs])
+#    return X_pca
+
 
 def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric='correlation', vscore_min_pctl=95, vscore_filter_method=None):
 
@@ -96,4 +94,3 @@ def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric
 
   return adata
 
-  
