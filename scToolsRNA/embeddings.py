@@ -91,7 +91,7 @@ def darken_cmap(cmap, scale_factor):
 
 
 
-def create_3d_rotation_animation(data, rotation_duration=5, fps=30, point_size=20, color_dimension=None, cmap='viridis', show_legend=True, show_axes=True, save_path='rotating_plot.gif'):
+def create_3d_rotation_animation(data, rotation_duration=3, fps=10, point_size=4, color_dimension=None, cmap='viridis', alpha=1, show_legend=True, show_axes=True, save_path='rotating_plot.gif'):
     """
     Create a rotating 3D scatter plot animation from a Pandas DataFrame or a NumPy array.
 
@@ -139,14 +139,14 @@ def create_3d_rotation_animation(data, rotation_duration=5, fps=30, point_size=2
             category_colors = plt.cm.get_cmap(cmap, len(unique_categories))
             color_mapping = {category: category_colors(i) for i, category in enumerate(unique_categories)}
             color_array = [color_mapping[category] if pd.notna(category) else (0, 0, 0, 0) for category in color_dimension]
-            sc = ax.scatter(*coordinates, s=point_size, c=color_array, marker='o')
+            sc = ax.scatter(*coordinates, s=point_size, c=color_array, marker='o', alpha=alpha)
             if show_legend:
                 # Increase the legend size and remove the frame
                 legend = ax.legend([plt.Line2D([0], [0], marker='o', color='w', markerfacecolor=color_mapping[category], markersize=10) for category in unique_categories],
                                    unique_categories, loc='upper left', bbox_to_anchor=(0.1, 0.9), borderaxespad=0., frameon=False, fontsize=12)
     else:
         # Create scatter plot without color dimension
-        sc = ax.scatter(*coordinates, c='blue', marker='o', s=point_size)
+        sc = ax.scatter(*coordinates, c='blue', marker='o', s=point_size, alpha=alpha)
 
     # Set plot parameters
     ax.set_box_aspect([1, 1, 1])  # Equal aspect ratio for the axes
