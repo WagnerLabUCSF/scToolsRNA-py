@@ -135,7 +135,6 @@ def create_3d_rotation_animation(data, rotation_duration=5, fps=30, point_size=2
     if color_dimension is not None:
         if pd.api.types.is_categorical_dtype(color_dimension):
             # If categorical, assign unique colors to each category
-            print('c')
             unique_categories = color_dimension.cat.categories
             category_colors = plt.cm.get_cmap(cmap, len(unique_categories))
             color_mapping = {category: category_colors(i) for i, category in enumerate(unique_categories)}
