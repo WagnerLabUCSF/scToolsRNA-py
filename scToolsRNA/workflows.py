@@ -4,7 +4,7 @@ import numpy as np
 from .dimensionality import *
 
 
-def pp_raw2norm(adata, batch_key=None):
+def pp_raw2norm(adata):
 	
 	# Store raw counts as separate layer
 	adata.layers['raw_nolog'] = adata.X.copy()
@@ -18,11 +18,11 @@ def pp_raw2norm(adata, batch_key=None):
 	sc.pp.log1p(adata)
 	adata.layers['tpm'] = adata.X.copy()
 	
-	# Scale the genes by z-score (large sparse matrix-friendly)
+	# Scale the genes by z-score (no zero center = large sparse matrix-friendly)
 	sc.pp.scale(adata, zero_center=False)
 
 
-def pp_get_embedding(adata, batch_key=None, n_neighbors=10, verbose=False):
+def pp_get_embedding(adata, batch_key=None, n_neighbors=10, verbose=False, include_umap=True, include_leiden=True):
 
 	# Perform PCA with a specified number of dimensions
 	sc.pp.pca(adata, n_comps=adata.uns['n_sig_PCs'], zero_center=True)
@@ -35,9 +35,11 @@ def pp_get_embedding(adata, batch_key=None, n_neighbors=10, verbose=False):
 		sc.pp.neighbors(adata, n_neighbors=10, n_pcs=adata.uns['n_sig_PCs'], metric='euclidean', use_rep='X_pca_harmony')
 
 	# Generate UMAP embedding
-	sc.tl.umap(adata, n_components=2, spread=1)
+	if include_umap:
+		sc.tl.umap(adata, n_components=2, spread=1)
 	
 	# Perform graph clustering
-	sc.tl.leiden(adata, resolution=1, key_added='leiden')
+	if include_leiden:
+		sc.tl.leiden(adata, resolution=1, key_added='leiden')
 
 
