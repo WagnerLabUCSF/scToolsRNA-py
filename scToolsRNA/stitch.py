@@ -18,7 +18,7 @@ def all_logging_disabled(highest_level=logging.CRITICAL):
         logging.disable(previous_level)
 
 
-def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric='correlation', vscore_min_pctl=95, vscore_filter_method=None, method='forward', get_distances=False):
+def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric='correlation', vscore_min_pctl=95, vscore_filter_method=None, method='forward'):
 
   # Determine the # of timepoints in adata
   timepoint_list = np.unique(adata.obs[timepoint_obs])
@@ -93,29 +93,29 @@ def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric
       # Convert graph connectivities and distances (csr matrices) to edge list format
       X_c = adata_t1t2.obsp['connectivities']
       edge_df = pd.DataFrame([[n1, n2, X_c[n1,n2]] for n1, n2 in zip(*X_c.nonzero())], columns=['n1','n2','connectivity'])
-      if get_distances:
-        X_d = adata_t1t2.obsp['distances']
-        dist_df = pd.DataFrame([[n1, n2, X_d[n1,n2]] for n1, n2 in zip(*X_d.nonzero())], columns=['n1','n2','distances'])
+      X_d = adata_t1t2.obsp['distances']
+      dist_df = pd.DataFrame([[n1, n2, X_d[n1,n2]] for n1, n2 in zip(*X_d.nonzero())], columns=['n1','n2','distances'])
 
-      # Adjust the node ids in the edge lists based on their overall order
+      # Adjust the node id counters
       edge_df['n1'] = edge_df['n1'] + base_counter
       edge_df['n2'] = edge_df['n2'] + base_counter
+      dist_df['n1'] = dist_df['n1'] + base_counter
+      dist_df['n2'] = dist_df['n2'] + base_counter
+      
+      # Append the most recent edge lists to the previous lists
       edge_lists.append(edge_df)
-      if get_distances:
-        dist_df['n1'] = dist_df['n1'] + base_counter
-        dist_df['n2'] = dist_df['n2'] + base_counter
-        dist_lists.append(dist_df)
+      dist_lists.append(dist_df)
 
-      # Increase base_counter by the # of cells in adata_t1
+      # Increment base_counter by the # of cells in adata_t1
       base_counter = base_counter + len(adata_t1)
 
   # Merge all edge lists
   combined_edge_df = pd.concat(edge_lists)
-  if get_distances: combined_dist_df = pd.concat(dist_lists)
+  combined_dist_df = pd.concat(dist_lists)
 
-  # Store STITCH graph and neighbors settings to adata
+  # Save STITCH graph/settings/params to adata
   adata.obsp['connectivities'] = scipy.sparse.coo_matrix((combined_edge_df['connectivity'], (combined_edge_df['n1'], combined_edge_df['n2']))).tocsr().copy()
-  if get_distances: adata.obsp['distances'] = scipy.sparse.coo_matrix((combined_dist_df['distances'], (combined_dist_df['n1'], combined_dist_df['n2']))).tocsr().copy()
+  adata.obsp['distances'] = scipy.sparse.coo_matrix((combined_dist_df['distances'], (combined_dist_df['n1'], combined_dist_df['n2']))).tocsr().copy()
   adata.uns['neighbors'] = adata_t1t2.uns['neighbors']
   adata.uns['stitch_params'] = {'timepoint_obs': timepoint_obs,
                                 'batch_obs': batch_obs,
@@ -123,7 +123,6 @@ def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric
                                 'distance_metric': distance_metric,
                                 'vscore_min_pctl': vscore_min_pctl,
                                 'vscore_filter_method': vscore_filter_method,
-                                'method': method,
-                                'get_distances': get_distances}
+                                'method': method}
 
   return adata

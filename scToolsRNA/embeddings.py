@@ -153,16 +153,15 @@ def create_3d_rotation_animation(data, rotation_duration=3, fps=10, point_size=4
     ax.set_facecolor('white')  # Set background color to white
     ax.grid(False)  # Hide grid
     ax.axis('off')  # Hide axes
-    
     # Plot X, Y, and Z axes in black with linewidth 5
     if show_axes:
-        x_center = (coordinates[0].max() + coordinates[0].min())/2 
-        y_center = (coordinates[1].max() + coordinates[1].min())/2 
-        z_center = (coordinates[2].max() + coordinates[2].min())/2 
+        x_center = (coordinates[0].max() + coordinates[0].min())/2
+        y_center = (coordinates[1].max() + coordinates[1].min())/2
+        z_center = (coordinates[2].max() + coordinates[2].min())/2
         ax.plot([x_center,x_center], [y_center, y_center], [coordinates[2].min() - 2, coordinates[2].max() + 2], c = (0, 0, 0, 0.5), lw = 5)
         ax.plot([x_center,x_center], [coordinates[1].min() - 2, coordinates[1].max() + 2], [z_center, z_center], c = (0, 0, 0, 0.5), lw = 5)
         ax.plot([coordinates[0].min() - 2, coordinates[0].max() + 2], [y_center,y_center], [z_center, z_center], c = (0, 0, 0, 0.5), lw = 5)
-        
+
     # Calculate the number of frames needed for a 360-degree rotation
     num_frames = int(rotation_duration * fps)
 
