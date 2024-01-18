@@ -46,8 +46,8 @@ def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric
       adata_t2 = adata_list[n+1].copy()
 
       # Normalize the two adata objects separately
-      pp_raw2norm(adata_t1)
-      pp_raw2norm(adata_t2)
+      dew.pp_raw2norm(adata_t1)
+      dew.pp_raw2norm(adata_t2)
 
       # Set directionality of time projections
       if method=='forward':
@@ -63,10 +63,11 @@ def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric
       print('Stitching Timepoints:', timepoint_list[n], arrow_str, timepoint_list[n+1])
 
       # Define variable genes and nPCs for adata_ref
-      get_variable_genes(adata_ref, batch_key=batch_obs, filter_method=vscore_filter_method, min_vscore_pctl=vscore_min_pctl)
+      dew.get_variable_genes(adata_ref, batch_key=batch_obs, filter_method=vscore_filter_method, min_vscore_pctl=vscore_min_pctl)
       nPCs_test_use = np.min([300, np.sum(adata_ref.var.highly_variable)-1])
-      get_significant_pcs(adata_ref, n_iter=1, nPCs_test = nPCs_test_use, show_plots=False, verbose=False)
-      print(np.sum(np.sum(adata_ref.var['highly_variable'])), adata_ref.uns['n_sig_PCs'])
+      dew.get_significant_pcs(adata_ref, n_iter=1, nPCs_test = nPCs_test_use, show_plots=False, verbose=False)
+      print('nHVgenes:', np.sum(np.sum(adata_ref.var['highly_variable'])))
+      print('nSigPCs', adata_ref.uns['n_sig_PCs'])
 
       # Get a pca embedding for adata_ref
       sc.pp.pca(adata_ref, n_comps=adata_ref.uns['n_sig_PCs'], zero_center=True)
@@ -108,4 +109,3 @@ def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric
   adata.uns['neighbors'] = adata_t1t2.uns['neighbors']
 
   return adata
-
