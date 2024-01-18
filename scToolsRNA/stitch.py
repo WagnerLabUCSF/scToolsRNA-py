@@ -113,7 +113,7 @@ def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric
 
   # Store STITCH graph and neighbors settings to adata
   adata.obsp['connectivities'] = scipy.sparse.coo_matrix((combined_edge_df['connectivity'], (combined_edge_df['n1'], combined_edge_df['n2']))).tocsr().copy()
-  adata.obsp['distances'] = scipy.sparse.coo_matrix((combined_edge_df['distances'], (combined_edge_df['n1'], combined_edge_df['n2']))).tocsr().copy()
+  adata.obsp['distances'] = scipy.sparse.coo_matrix((combined_dist_df['distances'], (combined_dist_df['n1'], combined_dist_df['n2']))).tocsr().copy()
   adata.uns['neighbors'] = adata_t1t2.uns['neighbors']
   adata.uns['stitch_params'] = {'timepoint_obs': timepoint_obs,
                                 'batch_obs': batch_obs,
