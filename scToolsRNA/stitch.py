@@ -37,6 +37,7 @@ def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric
   # Get edge lists for each timepoint pair
   base_counter = 0
   edge_lists = []
+  dist_lists = []
   with warnings.catch_warnings():
     warnings.simplefilter('ignore')
     for n in range(n_stitch_rounds):
@@ -46,8 +47,8 @@ def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric
       adata_t2 = adata_list[n+1].copy()
 
       # Normalize the two adata objects separately
-      dew.pp_raw2norm(adata_t1)
-      dew.pp_raw2norm(adata_t2)
+      pp_raw2norm(adata_t1)
+      pp_raw2norm(adata_t2)
 
       # Set directionality of time projections
       if method=='forward':
@@ -63,9 +64,9 @@ def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric
       print('Stitching Timepoints:', timepoint_list[n], arrow_str, timepoint_list[n+1])
 
       # Define variable genes and nPCs for adata_ref
-      dew.get_variable_genes(adata_ref, batch_key=batch_obs, filter_method=vscore_filter_method, min_vscore_pctl=vscore_min_pctl)
+      get_variable_genes(adata_ref, batch_key=batch_obs, filter_method=vscore_filter_method, min_vscore_pctl=vscore_min_pctl)
       nPCs_test_use = np.min([300, np.sum(adata_ref.var.highly_variable)-1])
-      dew.get_significant_pcs(adata_ref, n_iter=1, nPCs_test = nPCs_test_use, show_plots=False, verbose=False)
+      get_significant_pcs(adata_ref, n_iter=1, nPCs_test = nPCs_test_use, show_plots=False, verbose=False)
       print('nHVgenes:', np.sum(np.sum(adata_ref.var['highly_variable'])))
       print('nSigPCs', adata_ref.uns['n_sig_PCs'])
 
@@ -89,23 +90,30 @@ def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric
         sc.pp.neighbors(adata_t1t2, n_neighbors=n_neighbors, metric=distance_metric)
         stitch_neighbors_settings = adata_t1t2.uns['neighbors']
 
-      # Convert csr graph connectivities to an edge list
-      X = adata_t1t2.obsp['connectivities']
-      edge_df = pd.DataFrame([[n1, n2, X[n1,n2]] for n1, n2 in zip(*X.nonzero())], columns=['n1','n2','connectivity'])
+      # Convert  graph connectivities and distances (csr matrices), to edge list formats
+      X_c = adata_t1t2.obsp['connectivities']
+      edge_df = pd.DataFrame([[n1, n2, X_c[n1,n2]] for n1, n2 in zip(*X_c.nonzero())], columns=['n1','n2','connectivity'])
+      X_d = adata_t1t2.obsp['distances']
+      dist_df = pd.DataFrame([[n1, n2, X_d[n1,n2]] for n1, n2 in zip(*X_d.nonzero())], columns=['n1','n2','distances'])
 
-      # Adjust the node ids in the edge list based on their overall order
+      # Adjust the node ids in the edge lists based on their overall order
       edge_df['n1'] = edge_df['n1'] + base_counter
       edge_df['n2'] = edge_df['n2'] + base_counter
       edge_lists.append(edge_df)
+      dist_df['n1'] = dist_df['n1'] + base_counter
+      dist_df['n2'] = dist_df['n2'] + base_counter
+      dist_lists.append(dist_df)
 
       # Increase base_counter by the # of cells in adata_t1
       base_counter = base_counter + len(adata_t1)
 
   # Merge all edge lists
   combined_edge_df = pd.concat(edge_lists)
+  combined_dist_df = pd.concat(dist_lists)
 
   # Store STITCH graph and neighbors settings to adata
   adata.obsp['connectivities'] = scipy.sparse.coo_matrix((combined_edge_df['connectivity'], (combined_edge_df['n1'], combined_edge_df['n2']))).tocsr().copy()
+  adata.obsp['distances'] = scipy.sparse.coo_matrix((combined_edge_df['distances'], (combined_edge_df['n1'], combined_edge_df['n2']))).tocsr().copy()
   adata.uns['neighbors'] = adata_t1t2.uns['neighbors']
 
   return adata
