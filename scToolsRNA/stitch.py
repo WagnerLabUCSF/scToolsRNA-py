@@ -90,7 +90,7 @@ def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric
         sc.pp.neighbors(adata_t1t2, n_neighbors=n_neighbors, metric=distance_metric)
         stitch_neighbors_settings = adata_t1t2.uns['neighbors']
 
-      # Convert  graph connectivities and distances (csr matrices), to edge list formats
+      # Convert graph connectivities and distances (csr matrices) to edge list format
       X_c = adata_t1t2.obsp['connectivities']
       edge_df = pd.DataFrame([[n1, n2, X_c[n1,n2]] for n1, n2 in zip(*X_c.nonzero())], columns=['n1','n2','connectivity'])
       X_d = adata_t1t2.obsp['distances']
@@ -115,5 +115,12 @@ def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric
   adata.obsp['connectivities'] = scipy.sparse.coo_matrix((combined_edge_df['connectivity'], (combined_edge_df['n1'], combined_edge_df['n2']))).tocsr().copy()
   adata.obsp['distances'] = scipy.sparse.coo_matrix((combined_edge_df['distances'], (combined_edge_df['n1'], combined_edge_df['n2']))).tocsr().copy()
   adata.uns['neighbors'] = adata_t1t2.uns['neighbors']
+  adata.uns['stitch_params'] = {'timepoint_obs': timepoint_obs,
+                                'batch_obs': batch_obs,
+                                'n_neighbors': n_neighbors, 
+                                'distance_metric': distance_metric,
+                                'vscore_min_pctl': vscore_min_pctl,
+                                'vscore_filter_method': vscore_filter_method,
+                                'method': method}
 
   return adata
