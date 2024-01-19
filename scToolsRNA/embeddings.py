@@ -153,6 +153,7 @@ def create_3d_rotation_animation(data, rotation_duration=3, fps=10, point_size=4
     ax.set_facecolor('white')  # Set background color to white
     ax.grid(False)  # Hide grid
     ax.axis('off')  # Hide axes
+
     # Plot X, Y, and Z axes in black with linewidth 5
     if show_axes:
         x_center = (coordinates[0].max() + coordinates[0].min())/2
