@@ -123,19 +123,35 @@ def get_confusion_matrix(labels_A, labels_B,
         else:
             labels_A_mapped = labels_A_unique_sorted
 
-        mapping = pd.DataFrame(data=labels_A_mapped, index=labels_B_unique, columns=['top_match'])
+        mapping_df = pd.DataFrame(data=labels_A_mapped, index=labels_B_unique, columns=['top_match'])
         
         # Sort the index labels, if possible
         orig_list = labels_B_unique
         orig_list_digits = [s for s in orig_list if s.isdigit()]
         if len(orig_list)==len(orig_list_digits):
-            mapping.index = mapping.index.astype(int)
-            mapping = mapping.sort_index()
+            mapping_df.index = mapping_df.index.astype(int)
+            mapping_df = mapping_df.sort_index()
         
-        return mapping
+        return mapping_df
         
             
 plot_confusion_matrix = get_confusion_matrix # alias to legacy function name 
+
+
+def transfer_top_label(df, column_from, column_to):
+    
+    # Group the dataframe by the 'a' column and find the mode of the 'b' column within each group
+    most_common_per_group = df.groupby(column_to)[column_from].apply(lambda x: x.mode().iloc[0] if not x.mode().empty else None).reset_index()
+
+    # Rename the columns
+    new_column_name = column_to + '->' + column_from
+    most_common_per_group.columns = [column_to, new_column_name]
+
+    # Merge w/the original DataFrame
+    result_df = pd.merge(df, most_common_per_group, on=column_to, how='left')
+    result_df[new_column_name] = result_df[new_column_name].astype('category')
+
+    return result_df
 
 
 def plot_stacked_barplot(labels_A, 
@@ -154,6 +170,3 @@ def plot_stacked_barplot(labels_A,
     plt.ylabel('Proportion')
     plt.grid(False)
     plt.show()
-
-
-
