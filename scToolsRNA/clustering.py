@@ -4,6 +4,7 @@ import pandas as pd
 import scanpy as sc
 import matplotlib.pyplot as plt
 import sklearn
+import warnings
 
 
 
@@ -138,20 +139,26 @@ def get_confusion_matrix(labels_A, labels_B,
 plot_confusion_matrix = get_confusion_matrix # alias to legacy function name 
 
 
-def transfer_top_label(df, column_from, column_to):
+def transfer_top_obs_label(adata, column_from, column_to):
     
-    # Group the dataframe by the 'a' column and find the mode of the 'b' column within each group
-    most_common_per_group = df.groupby(column_to)[column_from].apply(lambda x: x.mode().iloc[0] if not x.mode().empty else None).reset_index()
+    with warnings.catch_warnings():
+      warnings.simplefilter("ignore")
+      
+      # Group the dataframe by the 'a' column and find the mode of the 'b' column within each group
+      most_common_per_group = adata.obs.groupby(column_to)[column_from].apply(lambda x: x.mode().iloc[0] if not x.mode().empty else None).reset_index()
 
-    # Rename the columns
-    new_column_name = column_from + '->' + column_to
-    most_common_per_group.columns = [column_to, new_column_name]
+      # Rename the columns
+      new_column_name = column_from + '->' + column_to
+      most_common_per_group.columns = [column_to, new_column_name]
 
-    # Merge w/the original DataFrame
-    result_df = pd.merge(df, most_common_per_group, on=column_to, how='left')
-    result_df[new_column_name] = result_df[new_column_name].astype('category')
+      # Merge w/the original DataFrame
+      result_df = pd.merge(adata.obs, most_common_per_group, on=column_to, how='left')
+      result_df[new_column_name] = result_df[new_column_name].astype('category')
 
-    return result_df
+      # Save to adata
+      adata.obs = result_df
+
+    return adata
 
 
 def plot_stacked_barplot(labels_A, 
