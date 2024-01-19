@@ -144,7 +144,7 @@ def transfer_top_label(df, column_from, column_to):
     most_common_per_group = df.groupby(column_to)[column_from].apply(lambda x: x.mode().iloc[0] if not x.mode().empty else None).reset_index()
 
     # Rename the columns
-    new_column_name = column_to + '->' + column_from
+    new_column_name = column_from + '->' + column_to
     most_common_per_group.columns = [column_to, new_column_name]
 
     # Merge w/the original DataFrame
