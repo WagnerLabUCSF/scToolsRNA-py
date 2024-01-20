@@ -8,25 +8,11 @@ import warnings
 
 
 
-# EVALUATION OF CLUSTERING RESULTS
+# LABEL COMPARISONS 
     
 
-def get_confusion_matrix(labels_A, labels_B,
-                         normalize=True,
-                         title=None,
-                         reorder_columns=True,
-                         reorder_rows=True,
-                         cmap=plt.cm.Blues,
-                         overlay_values=False,
-                         vmin=None,
-                         vmax=None,
-                         show_plot=True,
-                         return_df=False,
-                         figsize=4):
-    '''
-    Plots a confusion matrix comparing two sets labels. 
-    '''
-    
+def get_confusion_matrix(labels_A, labels_B, normalize=True, title=None, reorder_columns=True, reorder_rows=True, cmap=plt.cm.Blues, overlay_values=False, vmin=None, vmax=None, show_plot=True, return_df=False, figsize=4):
+
     # Filter labels if value is missing from either set
     nan_flag = labels_A.isnull() | labels_B.isnull()
     labels_A = labels_A[~nan_flag]
@@ -139,21 +125,26 @@ def get_confusion_matrix(labels_A, labels_B,
 plot_confusion_matrix = get_confusion_matrix # alias to legacy function name 
 
 
-def transfer_top_obs_label(adata, column_from, column_to):
-    
+def propagate_labels(adata, obs_from, obs_to, new_obs_name=None):
+
     with warnings.catch_warnings():
-      warnings.simplefilter("ignore")
-      
+      warnings.simplefilter('ignore')
+
       # Group the dataframe by the 'a' column and find the mode of the 'b' column within each group
-      most_common_per_group = adata.obs.groupby(column_to)[column_from].apply(lambda x: x.mode().iloc[0] if not x.mode().empty else None).reset_index()
+      most_common_per_group = adata.obs.groupby(obs_to)[obs_from].apply(lambda x: x.mode().iloc[0] if not x.mode().empty else None).reset_index()
 
       # Rename the columns
-      new_column_name = column_from + '->' + column_to
-      most_common_per_group.columns = [column_to, new_column_name]
+      if new_obs_name==None:
+        new_obs_name = obs_from + '->' + obs_to
+      most_common_per_group.columns = [obs_to, new_obs_name]
+
+      # If target column name already exists, we will replace it
+      if new_obs_name in adata.obs:
+        del adata.obs[new_obs_name]
 
       # Merge w/the original DataFrame
-      result_df = pd.merge(adata.obs, most_common_per_group, on=column_to, how='left')
-      result_df[new_column_name] = result_df[new_column_name].astype('category')
+      result_df = pd.merge(adata.obs, most_common_per_group, on=obs_to, how='left')
+      result_df[new_obs_name] = result_df[new_obs_name].astype('category')
 
       # Save to adata
       adata.obs = result_df
@@ -161,11 +152,7 @@ def transfer_top_obs_label(adata, column_from, column_to):
     return adata
 
 
-def plot_stacked_barplot(labels_A, 
-                         labels_B, 
-                         normalize='index', 
-                         fig_width=4, 
-                         fig_height=4):
+def plot_stacked_barplot(labels_A, labels_B, normalize='index', fig_width=4, fig_height=4):
 
     # Cross-tabulate the two sets of labels
     crstb = pd.crosstab(labels_A, labels_B, normalize=normalize)
@@ -177,3 +164,4 @@ def plot_stacked_barplot(labels_A,
     plt.ylabel('Proportion')
     plt.grid(False)
     plt.show()
+
