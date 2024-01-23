@@ -38,7 +38,6 @@ def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric
   base_counter = 0
   edge_lists = []
   dist_lists = []
-  leiden_lists = []
   with warnings.catch_warnings():
     warnings.simplefilter('ignore')
     for n in range(n_stitch_rounds):
@@ -91,11 +90,6 @@ def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric
         sc.pp.neighbors(adata_t1t2, n_neighbors=n_neighbors, metric=distance_metric)
         stitch_neighbors_settings = adata_t1t2.uns['neighbors']
 
-      # Perform leiden clustering
-      sc.tl.leiden(adata_t1t2, resolution=1)
-      leiden_lists.append(str(n)+'_'+adata_ref.obs['leiden'].astype('str'))
-      print(leiden_lists)
-
       # Convert graph connectivities and distances (csr matrices) to edge list format
       X_c = adata_t1t2.obsp['connectivities']
       edge_df = pd.DataFrame([[n1, n2, X_c[n1,n2]] for n1, n2 in zip(*X_c.nonzero())], columns=['n1','n2','connectivity'])
@@ -124,7 +118,6 @@ def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric
   adata.obsp['stitch_connectivities'] = scipy.sparse.coo_matrix((combined_edge_df['connectivity'], (combined_edge_df['n1'], combined_edge_df['n2']))).tocsr().copy()
   adata.obsp['connectivities'] = adata.obsp['stitch_connectivities'].copy()
   adata.obsp['distances'] = scipy.sparse.coo_matrix((combined_dist_df['distances'], (combined_dist_df['n1'], combined_dist_df['n2']))).tocsr().copy()
-  adata.obs['stitch_leiden'] = list(leiden_df)
   adata.uns['neighbors'] = adata_t1t2.uns['neighbors']
   adata.uns['stitch_params'] = {'timepoint_obs': timepoint_obs,
                                 'batch_obs': batch_obs,
