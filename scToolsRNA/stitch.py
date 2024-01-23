@@ -112,7 +112,6 @@ def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric
   # Merge all lists - what to do with the one straggler timepoint???
   combined_edge_df = pd.concat(edge_lists)
   combined_dist_df = pd.concat(dist_lists)
-  leiden_df = pd.concat(leiden_lists)
 
   # Save STITCH graph/settings/params to adata
   adata.obsp['stitch_connectivities'] = scipy.sparse.coo_matrix((combined_edge_df['connectivity'], (combined_edge_df['n1'], combined_edge_df['n2']))).tocsr().copy()
