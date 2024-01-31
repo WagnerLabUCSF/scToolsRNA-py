@@ -127,3 +127,61 @@ def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric
                                 'method': method}
 
   return adata
+
+
+
+
+def stitch_leiden(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric='correlation', vscore_min_pctl=95, vscore_filter_method=None):
+
+  # Determine the # of timepoints in adata
+  timepoint_list = np.unique(adata.obs[timepoint_obs])
+  n_timepoints = len(timepoint_list)
+
+  # Sort the cells in adata by timepoint
+  time_sort_index = adata.obs[timepoint_obs].sort_values(inplace=False).index
+  adata = adata[time_sort_index,:].copy()
+
+  # Generate a list of individual timepoint adatas
+  adata_list = []
+  for tp in timepoint_list:
+    adata_list.append(adata[adata.obs[timepoint_obs]==tp])
+
+  # Get embedding spaces and clustering assignments for each timepoint
+  leiden_lists = []
+  with warnings.catch_warnings():
+    warnings.simplefilter('ignore')
+    for n in range(n_timepoints):
+
+      print(n, timepoint_list[n])
+
+      # Specify individual adatas for the two timepoints in this round
+      adata_this_t = adata_list[n].copy()
+
+      # Normalize the two adata objects separately
+      pp_raw2norm(adata_this_t)
+
+      # Define variable genes and nPCs
+      get_variable_genes(adata_this_t, batch_key=batch_obs, filter_method=vscore_filter_method, min_vscore_pctl=vscore_min_pctl)
+      nPCs_test_use = np.min([300, np.sum(adata_this_t.var.highly_variable)-1])
+      get_significant_pcs(adata_this_t, n_iter=1, nPCs_test = nPCs_test_use, show_plots=False, verbose=False)
+
+      # Get a pca & neighbors embedding
+      sc.pp.pca(adata_this_t, n_comps=adata_this_t.uns['n_sig_PCs'], zero_center=True)
+      #sc.pp.neighbors(adata_this_t, n_neighbors=n_neighbors, n_pcs=adata_this_t.uns['n_sig_PCs'], metric=distance_metric, use_rep='X_pca')
+
+      # Harmony version
+      with all_logging_disabled():
+        sc.external.pp.harmony_integrate(adata_this_t, batch_obs, basis='X_pca', adjusted_basis='X_pca_harmony', max_iter_harmony=20, verbose=False)
+      sc.pp.neighbors(adata_this_t, n_neighbors=n_neighbors, n_pcs=adata_this_t.uns['n_sig_PCs'], metric=distance_metric, use_rep='X_pca_harmony')
+
+      # Perform leiden clustering
+      sc.tl.leiden(adata_this_t, resolution=1)
+      leiden_lists.append(str(n)+'_'+adata_this_t.obs['leiden'].astype('str'))
+
+  # Merge lists
+  leiden_df = pd.concat(leiden_lists)
+
+  # Save STITCH graph/settings/params to adata
+  adata.obs['stitch_leiden'] = list(leiden_df)
+
+  return adata
