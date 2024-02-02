@@ -131,6 +131,7 @@ def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric
 
 
 
+
 def stitch_leiden(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric='correlation', vscore_min_pctl=95, vscore_filter_method=None):
 
   # Determine the # of timepoints in adata
@@ -185,3 +186,8 @@ def stitch_leiden(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance
   adata.obs['stitch_leiden'] = list(leiden_df)
 
   return adata
+
+
+
+
+  

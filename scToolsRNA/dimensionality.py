@@ -241,7 +241,7 @@ def get_covar_genes(adata, minimum_correlation=0.2, show_hist=True):
       sparse=True
 
     # Get nn correlation distance for each highly variable gene
-    gene_correlation_matrix = 1-dew.sparse_corr(adata_tmp.X)
+    gene_correlation_matrix = 1-sparse_corr(adata_tmp.X)
     np.fill_diagonal(gene_correlation_matrix, np.inf)
     max_neighbor_corr = 1-gene_correlation_matrix.min(axis=1)
 
@@ -267,7 +267,7 @@ def get_covar_genes(adata, minimum_correlation=0.2, show_hist=True):
       adata_tmp_rand.X = mat
     
     # Get nn correlation distances for randomized data
-    gene_correlation_matrix = 1-dew.sparse_corr(adata_tmp_rand.X)
+    gene_correlation_matrix = 1-sparse_corr(adata_tmp_rand.X)
     np.fill_diagonal(gene_correlation_matrix, np.inf)
     max_neighbor_corr_rand = 1-gene_correlation_matrix.min(axis=1)
     
