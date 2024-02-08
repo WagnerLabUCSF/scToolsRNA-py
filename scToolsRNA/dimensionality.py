@@ -156,13 +156,13 @@ def get_variable_genes(adata, batch_key=None, filter_method='all', norm_counts_p
     
     # set the gene count threshold based on filter method
     if filter_method == 'any':
-        count_thresh = 0 # >0
+        count_thresh = 0 # >0 = in 1 or more batches
     elif filter_method == 'multiple':
-        count_thresh = 1 # >1
+        count_thresh = 1 # >1 = in 2 or more batches
     elif filter_method == 'majority':
-        count_thresh = n_batches/2 # > 50% of batches
+        count_thresh = n_batches/2 # in >50% of batches
     elif filter_method == 'all':
-        count_thresh = n_batches - 1 # == 100% of batches     
+        count_thresh = n_batches - 1 # in 100% of batches     
 
     # perform gene filtering
     within_batch_hv_genes = [g for gene in within_batch_hv_genes for g in gene]
