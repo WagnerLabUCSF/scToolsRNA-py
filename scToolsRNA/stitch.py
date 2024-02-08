@@ -133,7 +133,7 @@ def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric
 
       # Concatenate the pca projections for both timepoints in chronological order
       adata_t1t2 = adata_t1.concatenate(adata_t2, batch_categories=['t1', 't2'])
-      stitch_nBatches.append(len(np.unique(adata_ref.obs['batch_obs'])))
+      stitch_nBatches.append(len(np.unique(adata_ref.obs[batch_obs])))
 
       # Generate a t1-t2 neighbor graph (a sparse COO matrix) in the joint pca space
       if use_harmony: # include Harmony batch correction
