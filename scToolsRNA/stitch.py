@@ -138,6 +138,7 @@ def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric
         with logging_disabled():
           sc.external.pp.harmony_integrate(adata_t1t2, batch_obs, basis='X_pca', adjusted_basis='X_pca_harmony', max_iter_harmony=max_iter_harmony, verbose=False)
           sc.pp.neighbors(adata_t1t2, n_neighbors=n_neighbors, metric=distance_metric, use_rep='X_pca_harmony')
+          del adata_t1t2.uns['neighbors']['params']['use_rep']
       else: # version without Harmony
         sc.pp.neighbors(adata_t1t2, n_neighbors=n_neighbors, metric=distance_metric)
       X_d_coo = adata_t1t2.obsp['distances'].tocoo()
