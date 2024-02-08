@@ -156,18 +156,18 @@ def get_variable_genes(adata, batch_key=None, filter_method='all', norm_counts_p
     
     # set the gene count threshold based on filter method
     if filter_method == 'any':
-        count_thresh = 1
+        count_thresh = 0
     elif filter_method == 'multiple':
-        count_thresh = 2
+        count_thresh = 1
     elif filter_method == 'majority':
         count_thresh = n_batches/2
     elif filter_method == 'all':
-        count_thresh = n_batches     
+        count_thresh = n_batches - 1     
 
     # perform gene filtering
     within_batch_hv_genes = [g for gene in within_batch_hv_genes for g in gene]
     within_batch_hv_genes, c = np.unique(within_batch_hv_genes, return_counts=True)
-    within_batch_hv_genes = within_batch_hv_genes[c >= count_thresh]
+    within_batch_hv_genes = within_batch_hv_genes[c > count_thresh]
     adata.var['highly_variable'] = False
     adata.var.loc[within_batch_hv_genes, 'highly_variable'] = True
 
