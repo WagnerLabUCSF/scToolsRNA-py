@@ -70,10 +70,19 @@ def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric
   adata = adata[time_sort_index,:]#.copy()
 
   # Generate a list of normalized adatas for each timepojnt
+  #adata_list = []
+  #for tp in timepoint_list:
+  #  adata_list.append(adata[adata.obs[timepoint_obs]==tp])
+
+  # Generate a list of normalized adatas for each timepojnt
   adata_list = []
   for tp in timepoint_list:
-    adata_list.append(adata[adata.obs[timepoint_obs]==tp])
-    adata_list[tp] = pp_raw2norm(adata_list[tp], include_raw_layers=False)
+    print(tp)
+    adata_tmp = adata[adata.obs[timepoint_obs]==tp].copy()
+    dew.pp_raw2norm(adata_tmp, include_raw_layers=False)
+    adata_list.append(adata_tmp)
+  del adata_tmp
+
 
   # Set directionality of time projections
   if method=='forward':
