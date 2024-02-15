@@ -109,8 +109,8 @@ def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric
         adata_prj = adata_t2
 
       # Normalize the two adata objects separately
-      pp_raw2norm(adata_t1, include_raw_layers=False, include_tpm_layers=True)
-      pp_raw2norm(adata_t2, include_raw_layers=False, include_tpm_layers=True)
+      pp_raw2norm(adata_t1, include_raw_layers=False)
+      pp_raw2norm(adata_t2, include_raw_layers=False)
       
       print(adata_t1.obs['stitch_time_id'])
       print(adata_t1.obs['time_id'])
