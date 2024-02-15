@@ -67,7 +67,7 @@ def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric
 
   # Sort the cells in adata by timepoint
   time_sort_index = adata.obs[timepoint_obs].sort_values(inplace=False).index
-  adata = adata[time_sort_index,:]#.copy()
+  adata = adata[time_sort_index,:] #.copy()
 
   # Generate a list of individual timepoint adatas
   adata_list = []
@@ -144,6 +144,7 @@ def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric
       else: # version without Harmony
         sc.pp.neighbors(adata_t1t2, n_neighbors=n_neighbors, metric=distance_metric)
       X_d_coo = adata_t1t2.obsp['distances'].tocoo()
+      neighbors_settings = adata_t1t2.uns['neighbors']
 
       # Filter adata_ref self-edges in the non-anchor timepoints
       if n != anchor_round: 
@@ -171,6 +172,11 @@ def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric
       # Increment base_counter by the # of cells in adata_t1
       base_counter = base_counter + len(adata_t1)
 
+      # cleanup temp objects
+      del adata_t1t2
+      del adata_t1
+      del adata_t2
+
   # Assemble the full STITCH graph as a COO matrix
   X_d_stitch_combined = scipy.sparse.coo_matrix((X_d_stitch_data, (X_d_stitch_rows, X_d_stitch_cols)), shape=(len(adata), len(adata)))
   adata.obsp['distances'] = X_d_stitch_combined.tocsr()
@@ -190,7 +196,7 @@ def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric
                                   'max_iter_harmony': max_iter_harmony}
   
   # Store stitch/neighbors params
-  adata.uns['neighbors'] = adata_t1t2.uns['neighbors']
+  adata.uns['neighbors'] = neighbors_settings
   adata.uns['stitch_params'] = {'stitch_timepoints': timepoint_list,
                                 'stitch_n_timepoints': n_timepoints,
                                 'stitch_n_rounds': n_stitch_rounds,
