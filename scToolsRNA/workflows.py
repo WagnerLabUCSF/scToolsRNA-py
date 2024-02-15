@@ -4,19 +4,19 @@ import numpy as np
 from .dimensionality import *
 
 
-def pp_raw2norm(adata):
+def pp_raw2norm(adata, include_raw_layers=True, include_tpm_layers=True):
 	
 	# Store raw counts as separate layer
-	adata.layers['raw_nolog'] = adata.X.copy()
-	adata.layers['raw'] = np.log1p(adata.X.copy())
+	if include_raw_layers: adata.layers['raw_nolog'] = adata.X.copy()
+	if include_raw_layers: adata.layers['raw'] = np.log1p(adata.X.copy())
 	
 	# Perform total counts normalization
 	sc.pp.normalize_total(adata, target_sum=1e6, inplace=True) # TPM Normalization
 
 	# Store tpm counts as a separate layer
-	adata.layers['tpm_nolog'] = adata.X.copy()
+	if include_tpm_layers: adata.layers['tpm_nolog'] = adata.X.copy()
 	sc.pp.log1p(adata)
-	adata.layers['tpm'] = adata.X.copy()
+	if include_tpm_layers: adata.layers['tpm'] = adata.X.copy()
 	
 	# Scale the genes by z-score (no zero center = large sparse matrix-friendly)
 	sc.pp.scale(adata, zero_center=False)

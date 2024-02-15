@@ -67,7 +67,7 @@ def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric
 
   # Sort the cells in adata by timepoint
   time_sort_index = adata.obs[timepoint_obs].sort_values(inplace=False).index
-  adata = adata[time_sort_index,:].copy()
+  adata = adata[time_sort_index,:]#.copy()
 
   # Generate a list of individual timepoint adatas
   adata_list = []
@@ -99,8 +99,8 @@ def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric
       if verbose: print('Stitching Timepoints:', timepoint_list[n], arrow_str, timepoint_list[n+1])
 
       # Specify the reference and projection adatas this round
-      adata_t1 = adata_list[n]#.copy()
-      adata_t2 = adata_list[n+1]#.copy()
+      adata_t1 = adata_list[n].copy()
+      adata_t2 = adata_list[n+1].copy()
       if method=='forward':
         adata_ref = adata_t2
         adata_prj = adata_t1
@@ -109,8 +109,8 @@ def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric
         adata_prj = adata_t2
 
       # Normalize the two adata objects separately
-      pp_raw2norm(adata_t1)
-      pp_raw2norm(adata_t2)
+      pp_raw2norm(adata_t1, include_raw_layers=False, include_tpm_layers=False)
+      pp_raw2norm(adata_t2, include_raw_layers=False, include_tpm_layers=False)
       
       print(adata_t1.obs['stitch_time_id'])
       print(adata_t1.obs['time_id'])
