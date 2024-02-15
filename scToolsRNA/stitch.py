@@ -79,7 +79,7 @@ def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric
   for tp in timepoint_list:
     print(tp)
     adata_tmp = adata[adata.obs[timepoint_obs]==tp].copy()
-    dew.pp_raw2norm(adata_tmp, include_raw_layers=False)
+    pp_raw2norm(adata_tmp, include_raw_layers=False)
     adata_list.append(adata_tmp)
   del adata_tmp
 
