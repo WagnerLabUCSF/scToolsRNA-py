@@ -69,10 +69,11 @@ def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric
   time_sort_index = adata.obs[timepoint_obs].sort_values(inplace=False).index
   adata = adata[time_sort_index,:]#.copy()
 
-  # Generate a list of individual timepoint adatas
+  # Generate a list of normalized adatas for each timepojnt
   adata_list = []
   for tp in timepoint_list:
     adata_list.append(adata[adata.obs[timepoint_obs]==tp])
+    adata_list[tp] = pp_raw2norm(adata_list[tp], include_raw_layers=False)
 
   # Set directionality of time projections
   if method=='forward':
@@ -109,8 +110,8 @@ def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric
         adata_prj = adata_t2
 
       # Normalize the two adata objects separately
-      pp_raw2norm(adata_t1, include_raw_layers=False)
-      pp_raw2norm(adata_t2, include_raw_layers=False)
+      #pp_raw2norm(adata_t1, include_raw_layers=False)
+      #pp_raw2norm(adata_t2, include_raw_layers=False)
 
       # Get highly variable genes and significant PCs for adata_ref
       get_variable_genes(adata_ref, batch_key=batch_obs, filter_method=vscore_filter_method, min_vscore_pctl=vscore_min_pctl)
