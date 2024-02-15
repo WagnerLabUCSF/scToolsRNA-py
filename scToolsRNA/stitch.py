@@ -111,14 +111,6 @@ def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric
       # Normalize the two adata objects separately
       pp_raw2norm(adata_t1, include_raw_layers=False)
       pp_raw2norm(adata_t2, include_raw_layers=False)
-      
-      print(adata_t1.obs['stitch_time_id'])
-      print(adata_t1.obs['time_id'])
-      print(adata_t2.obs['stitch_time_id'])
-      print(adata_t2.obs['time_id'])
-
-      print(adata_t1)
-      print(adata_t2)
 
       # Get highly variable genes and significant PCs for adata_ref
       get_variable_genes(adata_ref, batch_key=batch_obs, filter_method=vscore_filter_method, min_vscore_pctl=vscore_min_pctl)
