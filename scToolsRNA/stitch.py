@@ -99,8 +99,8 @@ def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric
       if verbose: print('Stitching Timepoints:', timepoint_list[n], arrow_str, timepoint_list[n+1])
 
       # Specify the reference and projection adatas this round
-      adata_t1 = adata_list[n].copy()
-      adata_t2 = adata_list[n+1].copy()
+      adata_t1 = adata_list[n]#.copy()
+      adata_t2 = adata_list[n+1]#.copy()
       if method=='forward':
         adata_ref = adata_t2
         adata_prj = adata_t1
