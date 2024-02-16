@@ -178,7 +178,7 @@ def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric
       base_counter += len(adata_t1)
 
   # Assemble the full STITCH graph as a COO matrix
-  adata.obsp['distances'] = scipy.sparse.coo_matrix((X_d_stitch_data, (X_d_stitch_rows, X_d_stitch_cols)), shape=(len(adata), len(adata))).tocsr()
+  adata.obsp['distances'] = scipy.sparse.coo_matrix((X_d_stitch_data, (X_d_stitch_rows, X_d_stitch_cols)), shape=(len(adata), len(adata))).tocsr().copy()
   #adata.obsp['distances'] = X_d_stitch_combined.tocsr()
 
   # Compute connectivities from neighbor distances (umap-style)
