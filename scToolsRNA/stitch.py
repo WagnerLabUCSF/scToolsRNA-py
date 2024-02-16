@@ -168,18 +168,18 @@ def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric
         X_d_coo.row = X_d_coo.row[~adata_ref_self_edge]
 
       # Concatenate row, column, data for this stitch round
-      #X_d_stitch_rows = np.concatenate((X_d_stitch_rows, X_d_coo.row + base_counter))
-      #X_d_stitch_cols = np.concatenate((X_d_stitch_cols, X_d_coo.col + base_counter))
-      #X_d_stitch_data = np.concatenate((X_d_stitch_data, X_d_coo.data))
-      X_d_coo = scipy.sparse.coo_matrix((X_d_coo.data, (X_d_coo.row + base_counter, X_d_coo.col + base_counter)), shape=coo_shape)
-      X_d_stitch_combined = scipy.sparse.vstack([X_d_stitch_combined, X_d_coo])
+      X_d_stitch_rows = np.concatenate((X_d_stitch_rows, X_d_coo.row + base_counter))
+      X_d_stitch_cols = np.concatenate((X_d_stitch_cols, X_d_coo.col + base_counter))
+      X_d_stitch_data = np.concatenate((X_d_stitch_data, X_d_coo.data))
+      #X_d_coo = scipy.sparse.coo_matrix((X_d_coo.data, (X_d_coo.row + base_counter, X_d_coo.col + base_counter)), shape=coo_shape)
+      #X_d_stitch_combined = scipy.sparse.vstack([X_d_stitch_combined, X_d_coo])
 
       # Increment base_counter by the # of cells in adata_t1
       base_counter += len(adata_t1)
 
   # Assemble the full STITCH graph as a COO matrix
-  #adata.obsp['distances'] = scipy.sparse.coo_matrix((X_d_stitch_data, (X_d_stitch_rows, X_d_stitch_cols)), shape=(len(adata), len(adata))).tocsr()
-  adata.obsp['distances'] = X_d_stitch_combined.tocsr()
+  adata.obsp['distances'] = scipy.sparse.coo_matrix((X_d_stitch_data, (X_d_stitch_rows, X_d_stitch_cols)), shape=(len(adata), len(adata))).tocsr()
+  #adata.obsp['distances'] = X_d_stitch_combined.tocsr()
 
   # Compute connectivities from neighbor distances (umap-style)
   adata.obsp['connectivities'] = get_connectivities_from_dist_csr(adata.obsp['distances'], n_neighbors)
