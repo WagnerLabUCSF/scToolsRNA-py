@@ -1,3 +1,27 @@
+import matplotlib.pyplot as plt
+from matplotlib.colors import ListedColormap
+import matplotlib.colors as mcolors
+
+
+def get_custom_cmap(color_list):
+
+    # Convert categorical colors to RGB with 50% transparency
+    colors_rgb = [mcolors.to_rgba(color, alpha=0.5)[:3] for color in color_list]
+    custom_cmap = ListedColormap(colors_rgb)
+
+    # Display a colorbar for visualization
+    norm = plt.Normalize(0, len(color_list) - 1)
+    cmap_sm = plt.cm.ScalarMappable(norm=norm, cmap=custom_cmap)
+    cmap_sm.set_array([])
+
+    # Plot colorbar
+    fig, ax = plt.subplots(figsize=(0.2, 2))  # Adjust width and height as needed
+    plt.colorbar(cmap_sm, cax=ax, ticks=[])
+    plt.show()
+
+    return custom_cmap
+
+
 parula_cm = [[0.2081, 0.1663, 0.5292],
              [0.2116238095, 0.1897809524, 0.5776761905],
              [0.212252381, 0.2137714286, 0.6269714286],
