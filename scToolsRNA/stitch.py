@@ -58,6 +58,7 @@ def get_connectivities_from_dist_csr(D_csr, n_neighbors):
   return connectivities
 
 
+
 def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric='correlation', vscore_min_pctl=95, vscore_filter_method=None, method='forward', use_harmony=True, max_iter_harmony=20, verbose=True):
 
   # Determine the # of timepoints in adata
@@ -67,7 +68,7 @@ def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric
 
   # Sort the cells in adata by timepoint
   time_sort_index = adata.obs[timepoint_obs].sort_values(inplace=False).index
-  adata = adata[time_sort_index,:] #.copy()
+  adata = adata[time_sort_index,:].copy()
 
   # Generate a list of individual timepoint adatas
   adata_list = []
@@ -90,6 +91,8 @@ def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric
   stitch_nHVgenes = []
   stitch_nSigPCs = []
   stitch_nBatches = []
+  coo_shape = (len(adata), len(adata))
+  X_d_stitch_combined = scipy.sparse.coo_matrix(coo_shape)
 
   # Get neighbor graph for each stitch_round (each timepoint pair)
   with warnings.catch_warnings():
@@ -99,8 +102,8 @@ def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric
       if verbose: print('Stitching Timepoints:', timepoint_list[n], arrow_str, timepoint_list[n+1])
 
       # Specify the reference and projection adatas this round
-      adata_t1 = adata_list[n] #.copy()
-      adata_t2 = adata_list[n+1] #.copy()
+      adata_t1 = adata_list[n].copy()
+      adata_t2 = adata_list[n+1].copy()
       if method=='forward':
         adata_ref = adata_t2
         adata_prj = adata_t1
@@ -109,9 +112,9 @@ def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric
         adata_prj = adata_t2
 
       # Normalize the two adata objects separately
-      pp_raw2norm(adata_t1)
-      pp_raw2norm(adata_t2)
-      
+      pp_raw2norm(adata_t1, include_raw_layers=False)
+      pp_raw2norm(adata_t2, include_raw_layers=False)
+
       # Get highly variable genes and significant PCs for adata_ref
       get_variable_genes(adata_ref, batch_key=batch_obs, filter_method=vscore_filter_method, min_vscore_pctl=vscore_min_pctl)
       nPCs_test_use = np.min([300, np.sum(adata_ref.var.highly_variable)-1]) # in case nHVgenes is < nPCs
@@ -144,6 +147,7 @@ def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric
       else: # version without Harmony
         sc.pp.neighbors(adata_t1t2, n_neighbors=n_neighbors, metric=distance_metric)
       X_d_coo = adata_t1t2.obsp['distances'].tocoo()
+      neighbors_settings = adata_t1t2.uns['neighbors']
 
       # Filter adata_ref self-edges in the non-anchor timepoints
       if n != anchor_round: 
@@ -167,35 +171,26 @@ def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric
       X_d_stitch_rows = np.concatenate((X_d_stitch_rows, X_d_coo.row + base_counter))
       X_d_stitch_cols = np.concatenate((X_d_stitch_cols, X_d_coo.col + base_counter))
       X_d_stitch_data = np.concatenate((X_d_stitch_data, X_d_coo.data))
+      #X_d_coo = scipy.sparse.coo_matrix((X_d_coo.data, (X_d_coo.row + base_counter, X_d_coo.col + base_counter)), shape=coo_shape)
+      #X_d_stitch_combined = scipy.sparse.vstack([X_d_stitch_combined, X_d_coo])
 
       # Increment base_counter by the # of cells in adata_t1
-      base_counter = base_counter + len(adata_t1)
+      base_counter += len(adata_t1)
 
   # Assemble the full STITCH graph as a COO matrix
-  X_d_stitch_combined = scipy.sparse.coo_matrix((X_d_stitch_data, (X_d_stitch_rows, X_d_stitch_cols)), shape=(len(adata), len(adata)))
-  adata.obsp['distances'] = X_d_stitch_combined.tocsr()
+  adata.obsp['distances'] = scipy.sparse.coo_matrix((X_d_stitch_data, (X_d_stitch_rows, X_d_stitch_cols)), shape=(len(adata), len(adata))).tocsr()
+  #adata.obsp['distances'] = X_d_stitch_combined.tocsr()
 
   # Compute connectivities from neighbor distances (umap-style)
   adata.obsp['connectivities'] = get_connectivities_from_dist_csr(adata.obsp['distances'], n_neighbors)
 
-  # Store run settings 
-  adata.uns['stitch_settings'] = {'timepoint_obs': timepoint_obs,
-                                  'batch_obs': batch_obs,
-                                  'n_neighbors': n_neighbors,
-                                  'distance_metric': distance_metric,
-                                  'vscore_min_pctl': vscore_min_pctl,
-                                  'vscore_filter_method': vscore_filter_method,
-                                  'method': method,
-                                  'use_harmony': use_harmony,
-                                  'max_iter_harmony': max_iter_harmony}
-  
-  # Store stitch/neighbors params
-  adata.uns['neighbors'] = adata_t1t2.uns['neighbors']
-  adata.uns['stitch_params'] = {'stitch_timepoints': timepoint_list,
-                                'stitch_n_timepoints': n_timepoints,
-                                'stitch_n_rounds': n_stitch_rounds,
-                                'stitch_nHVgenes': stitch_nHVgenes,
-                                'stitch_nSigPCs': stitch_nSigPCs,
-                                'stitch_nBatches': stitch_nBatches}
+  # Store run settings & params
+  adata.uns['neighbors'] = neighbors_settings
+  adata.uns['stitch_settings'] = {'timepoint_obs': timepoint_obs, 'batch_obs': batch_obs, 'n_neighbors': n_neighbors,'distance_metric': distance_metric,
+                                  'vscore_min_pctl': vscore_min_pctl, 'vscore_filter_method': vscore_filter_method, 'method': method,
+                                  'use_harmony': use_harmony, 'max_iter_harmony': max_iter_harmony}
+  adata.uns['stitch_params'] = {'stitch_timepoints': timepoint_list, 'stitch_n_timepoints': n_timepoints, 'stitch_n_rounds': n_stitch_rounds,
+                                'stitch_nHVgenes': stitch_nHVgenes, 'stitch_nSigPCs': stitch_nSigPCs, 'stitch_nBatches': stitch_nBatches}
  
   return adata
+
