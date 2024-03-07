@@ -5,10 +5,53 @@ import scanpy as sc
 import matplotlib.pyplot as plt
 import sklearn
 import warnings
+from scipy.sparse import coo_matrix
+from scipy.stats import rankdata 
 
 
 
-# LABEL COMPARISONS 
+# UTILITIES
+
+
+def get_smooth_values(adata, obs_use, k=15, n_rounds=1, rank=True, log=True, scale=True):
+
+    # Format inputs
+    graph = adata.obsp['connectivities'].tocoo()
+    values = np.array(adata.obs[obs_use])
+    n_nodes = graph.shape[0]
+    
+    # Convert values to ranks
+    if rank:
+        values = rankdata(values, method='dense')
+        
+    # Get slicing indices for each node along graph rows
+    _, slice_idx = np.unique(graph.row, return_index=True)
+    slice_idx = np.append(slice_idx, len(graph.col))
+    
+
+    # Perform specified # of rounds of smoothing
+    for round in range(n_rounds):
+        
+        # Get smoothened values
+        values_tmp = np.empty(n_nodes)
+        for i in range(n_nodes):
+            start_idx = slice_idx[i]
+            end_idx = slice_idx[i+1]
+            neighbor_indices = graph.col[start_idx:end_idx]
+            neighbor_values = values[neighbor_indices]
+            k_nearest_values = np.sort(neighbor_values)[:min(k, len(neighbor_values))]
+            values_tmp[i] = np.nanmean(k_nearest_values)
+        
+        values = values_tmp
+    
+    if log: 
+        values = np.log1p(values)
+
+    if scale:
+        values = (values - np.min(values)) / (np.max(values) - np.min(values))
+ 
+
+    return values
     
 
 def get_confusion_matrix(labels_A, labels_B, normalize=True, title=None, reorder_columns=True, reorder_rows=True, cmap=plt.cm.Blues, overlay_values=False, vmin=None, vmax=None, show_plot=True, return_df=False, figsize=4):
