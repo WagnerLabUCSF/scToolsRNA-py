@@ -1,8 +1,6 @@
-
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 import matplotlib.colors as mcolors
-
 
 
 def get_custom_cmap(color_list):
