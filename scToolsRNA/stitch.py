@@ -58,6 +58,62 @@ def get_connectivities_from_dist_csr(D_csr, n_neighbors):
   return connectivities
 
 
+def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_min_pctl=95, vscore_filter_method=None, verbose=True):
+
+  # Determine the # of timepoints in adata
+  timepoint_list = np.unique(adata.obs[timepoint_obs])
+  n_timepoints = len(timepoint_list)
+
+  # Sort the cells in adata by timepoint
+  time_sort_index = adata.obs[timepoint_obs].sort_values(inplace=False).index
+  adata = adata[time_sort_index,:].copy()
+
+  # Generate a list of individual timepoint adatas
+  adata_list = []
+  for tp in timepoint_list:
+    adata_list.append(adata[adata.obs[timepoint_obs]==tp])
+
+  # Initialize STITCH resullts lists
+  stitch_nHVgenes = []
+  stitch_HVgene_flags = []
+  stitch_nSigPCs = []
+  stitch_nBatches = []
+  
+  # Get dimensionality info for each timepoint
+  with warnings.catch_warnings():
+    warnings.simplefilter('ignore')
+    for n in range(n_timepoints):
+      
+      if verbose: print('Getting Timepoint Dimensions:', timepoint_list[n])
+
+      # Specify the adata for this timepoint
+      adata_tmp = adata_list[n].copy()
+      
+      # Normalize 
+      pp_raw2norm(adata, include_raw_layers=False)
+
+      # Get highly variable genes and significant PCs
+      get_variable_genes(adata_tmp, batch_key=batch_obs, filter_method=vscore_filter_method, min_vscore_pctl=vscore_min_pctl)
+      nPCs_test_use = np.min([300, np.sum(adata_tmp.var.highly_variable)-1]) # in case nHVgenes is < nPCs
+      get_significant_pcs(adata_tmp, n_iter=1, nPCs_test = nPCs_test_use, show_plots=False, verbose=False)
+      this_round_nHVgenes = np.sum(np.sum(adata_tmp.var['highly_variable']))      
+      this_round_nSigPCs = adata_tmp.uns['n_sig_PCs']
+      if verbose: 
+        print('nHVgenes:', this_round_nHVgenes)
+        print('nSigPCs', this_round_nSigPCs)
+      stitch_nHVgenes.append(this_round_nHVgenes)
+      stitch_nSigPCs.append(this_round_nSigPCs)
+      stitch_HVgene_flags.append(adata_tmp.var['highly_variable'])
+
+  # Store run settings & params
+  adata.uns['stitch_get_dims'] = {'timepoint_obs': timepoint_obs, 'batch_obs': batch_obs, 
+                                       'vscore_min_pctl': vscore_min_pctl, 'vscore_filter_method': vscore_filter_method}
+  adata.uns['stitch_get_dims'] = {'stitch_timepoints': timepoint_list, 'stitch_n_timepoints': n_timepoints,
+                                       'stitch_nHVgenes': stitch_nHVgenes, 'stitch_HVgene_flags': stitch_HVgene_flags, 
+                                       'stitch_nSigPCs': stitch_nSigPCs}
+ 
+  return adata
+
 
 def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric='correlation', vscore_min_pctl=95, vscore_filter_method=None, method='forward', use_harmony=True, max_iter_harmony=20, verbose=True):
 
@@ -83,12 +139,13 @@ def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric
     arrow_str = '<-'
     anchor_round = 0 # anchor = first round
 
-  # Initialize STITCH data lists
+  # Initialize STITCH resullts lists
   base_counter = 0
   X_d_stitch_rows = []
   X_d_stitch_cols = []
   X_d_stitch_data = []
   stitch_nHVgenes = []
+  stitch_HVgene_flags = []
   stitch_nSigPCs = []
   stitch_nBatches = []
   coo_shape = (len(adata), len(adata))
@@ -126,6 +183,7 @@ def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric
         print('nSigPCs', this_round_nSigPCs)
       stitch_nHVgenes.append(this_round_nHVgenes)
       stitch_nSigPCs.append(this_round_nSigPCs)
+      stitch_HVgene_flags.append(adata_ref.var['highly_variable'])
 
       # Get a pca embedding for adata_ref
       sc.pp.pca(adata_ref, n_comps=adata_ref.uns['n_sig_PCs'], zero_center=True)
@@ -189,8 +247,8 @@ def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric
   adata.uns['stitch_settings'] = {'timepoint_obs': timepoint_obs, 'batch_obs': batch_obs, 'n_neighbors': n_neighbors,'distance_metric': distance_metric,
                                   'vscore_min_pctl': vscore_min_pctl, 'vscore_filter_method': vscore_filter_method, 'method': method,
                                   'use_harmony': use_harmony, 'max_iter_harmony': max_iter_harmony}
-  adata.uns['stitch_params'] = {'stitch_timepoints': timepoint_list, 'stitch_n_timepoints': n_timepoints, 'stitch_n_rounds': n_stitch_rounds,
-                                'stitch_nHVgenes': stitch_nHVgenes, 'stitch_nSigPCs': stitch_nSigPCs, 'stitch_nBatches': stitch_nBatches}
+  adata.uns['stitch_results'] = {'stitch_timepoints': timepoint_list, 'stitch_n_timepoints': n_timepoints, 'stitch_n_rounds': n_stitch_rounds,
+                                'stitch_nHVgenes': stitch_nHVgenes, 'stitch_HVgene_flags': stitch_HVgene_flags, 'stitch_nSigPCs': stitch_nSigPCs, 'stitch_nBatches': stitch_nBatches}
  
   return adata
 
