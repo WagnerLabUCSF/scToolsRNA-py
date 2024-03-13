@@ -84,13 +84,13 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_min_pctl=95, vs
     warnings.simplefilter('ignore')
     for n in range(n_timepoints):
       
-      if verbose: print('Getting Timepoint Dimensions:', timepoint_list[n])
+      if verbose: print('Getting HV genes and PCs for:', timepoint_list[n])
 
       # Specify the adata for this timepoint
       adata_tmp = adata_list[n].copy()
       
       # Normalize 
-      pp_raw2norm(adata, include_raw_layers=False)
+      pp_raw2norm(adata_tmp, include_raw_layers=False)
 
       # Get highly variable genes and significant PCs
       get_variable_genes(adata_tmp, batch_key=batch_obs, filter_method=vscore_filter_method, min_vscore_pctl=vscore_min_pctl)
