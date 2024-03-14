@@ -77,6 +77,8 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_min_pctl=95, vs
   stitch_nHVgenes = []
   stitch_HVgene_flags = []
   stitch_nSigPCs = []
+  stitch_PCs = []
+  stitch_PC_loadings = []
   stitch_nBatches = []
   
   # Get dimensionality info for each timepoint
@@ -104,13 +106,15 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_min_pctl=95, vs
       stitch_nHVgenes.append(this_round_nHVgenes)
       stitch_nSigPCs.append(this_round_nSigPCs)
       stitch_HVgene_flags.append(adata_tmp.var['highly_variable'])
+      stitch_PCs.append(adata_tmp..varm['PCs'])
+      stitch_PC_loadings.append(adata_tmp..obsm['X_pca'])
 
   # Store run settings & params
   adata.uns['stitch_get_dims'] = {'timepoint_obs': timepoint_obs, 'batch_obs': batch_obs, 
                                        'vscore_min_pctl': vscore_min_pctl, 'vscore_filter_method': vscore_filter_method}
   adata.uns['stitch_get_dims'] = {'stitch_timepoints': timepoint_list, 'stitch_n_timepoints': n_timepoints,
                                        'stitch_nHVgenes': stitch_nHVgenes, 'stitch_HVgene_flags': stitch_HVgene_flags, 
-                                       'stitch_nSigPCs': stitch_nSigPCs}
+                                       'stitch_nSigPCs': stitch_nSigPCs, 'stitch_PCs': stitch_PCs, 'stitch_PC_loadings': stitch_PC_loadings}
  
   return adata
 
