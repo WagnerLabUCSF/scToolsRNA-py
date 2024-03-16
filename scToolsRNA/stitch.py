@@ -6,6 +6,8 @@ import scipy
 import logging
 from contextlib import contextmanager
 from umap.umap_ import fuzzy_simplicial_set
+import plotly.express as px
+import plotly.graph_objects as go
 from .dimensionality import *
 from .workflows import *
 
@@ -117,6 +119,88 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_min_pctl=95, vs
   return adata
 
 
+
+def plot_stitch_hvgene_overlaps(adata, jaccard=True, cmap='Blues'):
+
+    labels = adata.uns['stitch_dims']['stitch_timepoints'].astype('int').astype('str')
+    hv_flags = adata.uns['stitch_dims']['stitch_HVgene_flags']
+
+    # Calculate overlap scores between boolean arrays for the HVgene sets
+    n = len(hv_flags)
+    overlap = np.zeros((n, n), dtype=float)
+    for i in range(n):
+        for j in range(i+1, n):
+            intersection_size = np.sum(hv_flags[i] & hv_flags[j])
+            union_size = np.sum(hv_flags[i] | hv_flags[j])
+            min_group_size = np.min([np.sum(hv_flags[i]), np.sum(hv_flags[j])])
+            if jaccard == True:
+                denom = union_size
+            else:
+                denom = min_group_size                        
+            overlap[i, j] = intersection_size / denom if denom != 0 else 0
+            overlap[j, i] = overlap[i, j]
+
+    # Plot overlap matrix using Plotly heatmap
+    fig = px.imshow(overlap,
+                    color_continuous_scale=cmap,
+                    labels=dict(x='Timepoint Group (hpf)', y='Timepoint Group (hpf)'),
+                    x=labels,y=labels,
+                    title='HV Gene Overlap Matrix')
+ 
+    # Add horizontal and vertical grid lines
+    for i in range(overlap.shape[1] + 1):
+      fig.add_shape(type='line', x0=i - 0.5, y0=-0.5, x1=i - 0.5, y1=overlap.shape[0] - 0.5, line=dict(color='black', width=1))
+    for i in range(overlap.shape[0] + 1):
+        fig.add_shape(type='line', x0=-0.5, y0=i - 0.5, x1=overlap.shape[1] - 0.5, y1=i - 0.5, line=dict(color='black', width=1))  
+    
+
+    fig.show()
+
+
+def plot_stitch_pvgene_overlaps(adata, jaccard=True, cmap='Blues', n_genes_per_pc=100):
+
+    labels = adata.uns['stitch_dims']['stitch_timepoints'].astype('int').astype('str')
+    pc_loadings_list = adata.uns['stitch_dims']['stitch_PCs']
+
+    # Get a list of the top-loaded genes from PCA loading matrices
+    pvgenes_list = []
+    for pc_loadings in pc_loadings_list:
+        pvgenes_this_tp = []
+        for pc in range(pc_loadings.shape[1]):        
+            top_gene_ind_this_pc = list(np.argsort(np.absolute((pc_loadings[:,pc])))[::-1][:n_genes_per_pc])
+            pvgenes_this_tp.extend(adata.var_names[top_gene_ind_this_pc])
+        pvgenes_list.append(list(set(pvgenes_this_tp)))
+
+    # Calculate overlap scores between pvgene sets
+    n = len(pvgenes_list)
+    overlap = np.zeros((n, n), dtype=float)
+    for i in range(n):
+        for j in range(i+1, n):
+            intersection = list(set(pvgenes_list[i]) & set(pvgenes_list[j])) #map(eq, pvgenes_list[i], pvgenes_list[j])
+            intersection_size = len(intersection)
+            union_size = len(pvgenes_list[i]) + len(pvgenes_list[j])
+            min_group_size = np.min([len(pvgenes_list[i]), len(pvgenes_list[j])])
+            if jaccard == True:
+                denom = union_size
+            else:
+                denom = min_group_size                        
+            overlap[i, j] = intersection_size / denom if denom != 0 else 0
+            overlap[j, i] = overlap[i, j]
+
+    # Plot overlap matrix using Plotly heatmap
+    fig = px.imshow(overlap,
+                    color_continuous_scale=cmap,
+                    labels=dict(x='Timepoint Group (hpf)', y='Timepoint Group (hpf)'),
+                    x=labels,y=labels,
+                    title='PV Gene Overlap Matrix')
+ 
+    # Add horizontal and vertical grid lines
+    for i in range(overlap.shape[1] + 1):
+      fig.add_shape(type='line', x0=i - 0.5, y0=-0.5, x1=i - 0.5, y1=overlap.shape[0] - 0.5, line=dict(color='black', width=1))
+    for i in range(overlap.shape[0] + 1):
+        fig.add_shape(type='line', x0=-0.5, y0=i - 0.5, x1=overlap.shape[1] - 0.5, y1=i - 0.5, line=dict(color='black', width=1))  
+    
+    fig.show()
 def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric='correlation', vscore_min_pctl=95, vscore_filter_method=None, method='forward', use_harmony=True, max_iter_harmony=20, verbose=True):
 
   # Determine the # of timepoints in adata
