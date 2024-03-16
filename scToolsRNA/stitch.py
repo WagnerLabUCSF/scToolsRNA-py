@@ -60,7 +60,7 @@ def get_connectivities_from_dist_csr(D_csr, n_neighbors):
   return connectivities
 
 
-def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_min_pctl=95, vscore_filter_method=None, verbose=True):
+def get_stitch_dims(adata, timepoint_obs, batch_obs=None, vscore_min_pctl=95, vscore_filter_method=None, verbose=True):
 
   # Determine the # of timepoints in adata
   timepoint_list = np.unique(adata.obs[timepoint_obs])
