@@ -119,7 +119,6 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_min_pctl=95, vs
   return adata
 
 
-
 def plot_stitch_hvgene_overlaps(adata, jaccard=True, cmap='Blues'):
 
     labels = adata.uns['stitch_dims']['stitch_timepoints'].astype('int').astype('str')
@@ -162,6 +161,8 @@ def plot_stitch_pvgene_overlaps(adata, jaccard=True, cmap='Blues', n_genes_per_p
     labels = adata.uns['stitch_dims']['stitch_timepoints'].astype('int').astype('str')
     pc_loadings_list = adata.uns['stitch_dims']['stitch_PCs']
 
+
+
     # Get a list of the top-loaded genes from PCA loading matrices
     pvgenes_list = []
     for pc_loadings in pc_loadings_list:
@@ -201,6 +202,8 @@ def plot_stitch_pvgene_overlaps(adata, jaccard=True, cmap='Blues', n_genes_per_p
         fig.add_shape(type='line', x0=-0.5, y0=i - 0.5, x1=overlap.shape[1] - 0.5, y1=i - 0.5, line=dict(color='black', width=1))  
     
     fig.show()
+
+
 def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric='correlation', vscore_min_pctl=95, vscore_filter_method=None, method='forward', use_harmony=True, max_iter_harmony=20, verbose=True):
 
   # Determine the # of timepoints in adata
