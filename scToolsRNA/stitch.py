@@ -78,13 +78,12 @@ def get_stitch_dims(adata, timepoint_obs, batch_obs=None, vscore_min_pctl=95, vs
         adata_tmp = sc.pp.subsample(adata_tmp, n_obs=downsample_cells, copy=True)
     adata_list.append(adata_tmp)
 
-  # Initialize STITCH resullts lists
+  # Initialize results lists
   stitch_nHVgenes = []
   stitch_HVgene_flags = []
   stitch_nSigPCs = []
   stitch_PCs = []
   stitch_PC_loadings = []
-  stitch_nBatches = []
   
   # Get dimensionality info for each timepoint
   with warnings.catch_warnings():
@@ -103,12 +102,16 @@ def get_stitch_dims(adata, timepoint_obs, batch_obs=None, vscore_min_pctl=95, vs
       get_variable_genes(adata_tmp, batch_key=batch_obs, filter_method=vscore_filter_method, min_vscore_pctl=vscore_min_pctl)
       nPCs_test_use = np.min([300, np.sum(adata_tmp.var.highly_variable)-1]) # in case nHVgenes is < nPCs
       sc.pp.pca(adata_tmp, n_comps=nPCs_test_use, zero_center=True)
-      #get_significant_pcs(adata_tmp, n_iter=1, nPCs_test = nPCs_test_use, show_plots=False, verbose=False)
-      this_round_nHVgenes = np.sum(np.sum(adata_tmp.var['highly_variable']))      
+      get_significant_pcs(adata_tmp, n_iter=1, nPCs_test = nPCs_test_use, show_plots=False, verbose=False)
+      this_round_nHVgenes = np.sum(np.sum(adata_tmp.var['highly_variable']))
+      this_round_nSigPCs = adata_tmp.uns['n_sig_PCs']
       if verbose: 
         print('nHVgenes:', this_round_nHVgenes)
+        print('nSigPCs', this_round_nSigPCs)
+
       stitch_nHVgenes.append(this_round_nHVgenes)
       stitch_HVgene_flags.append(adata_tmp.var['highly_variable'])
+      stitch_nSigPCs.append(this_round_nSigPCs)
       stitch_PCs.append(adata_tmp.varm['PCs'])
       stitch_PC_loadings.append(adata_tmp.obsm['X_pca'])
 
@@ -117,7 +120,7 @@ def get_stitch_dims(adata, timepoint_obs, batch_obs=None, vscore_min_pctl=95, vs
                               'vscore_filter_method': vscore_filter_method, 'stitch_timepoints': timepoint_list, 
                               'stitch_n_timepoints': n_timepoints, 'stitch_nHVgenes': stitch_nHVgenes, 
                               'stitch_HVgene_flags': stitch_HVgene_flags, 
-                              'stitch_PCs': stitch_PCs, 'stitch_PC_loadings': stitch_PC_loadings}
+                              'stitch_PCs': stitch_PCs, 'stitch_PC_loadings': stitch_PC_loadings, 'stitch_nSigPCs': stitch_nSigPCs}
  
   return adata
 
