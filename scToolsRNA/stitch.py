@@ -12,7 +12,7 @@ from .dimensionality import *
 from .workflows import *
 
 @contextmanager
-def logging_disabled(highest_level=logging.CRITICAL):
+def disable_logging(highest_level=logging.CRITICAL):
     previous_level = logging.root.manager.disable
     logging.disable(highest_level)
     try:
@@ -287,7 +287,7 @@ def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric
 
       # Generate a t1-t2 neighbor graph (a sparse COO matrix) in the joint pca space
       if use_harmony: # include Harmony batch correction
-        with logging_disabled():
+        with disable_logging():
           sc.external.pp.harmony_integrate(adata_t1t2, batch_obs, basis='X_pca', adjusted_basis='X_pca_harmony', max_iter_harmony=max_iter_harmony, verbose=False)
           sc.pp.neighbors(adata_t1t2, n_neighbors=n_neighbors, metric=distance_metric, use_rep='X_pca_harmony')
           del adata_t1t2.uns['neighbors']['params']['use_rep']
