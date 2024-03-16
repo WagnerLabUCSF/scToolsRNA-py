@@ -74,7 +74,7 @@ def get_stitch_dims(adata, timepoint_obs, batch_obs=None, vscore_min_pctl=95, vs
   adata_list = []
   for tp in timepoint_list:
     adata_tmp = adata[adata.obs[timepoint_obs]==tp]
-    if downsample_cells is not None:
+    if downsample_cells is not None and downsample_cells < len(adata_tmp):
         adata_tmp = sc.pp.subsample(adata_tmp, n_obs=downsample_cells, copy=True)
         print(len(adata_tmp))
     adata_list.append(adata_tmp)
