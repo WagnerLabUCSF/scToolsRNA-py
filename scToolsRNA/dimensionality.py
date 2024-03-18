@@ -14,6 +14,10 @@ import pandas as pd
 # IDENTIFY HIGHLY VARIABLE GENES
 
 
+def get_min_max_norm(data):
+
+    return (data - np.nanmin(data)) / (np.nanmax(data) - np.nanmin(data))
+
 def runningquantile(x, y, p, nBins):
     """ calculate the quantile of y in bins of x """
 
@@ -147,8 +151,6 @@ def get_variable_genes(adata, batch_key=None, filter_method='all', norm_counts_p
     n_batches = len(batch_ids)
     within_batch_hv_genes = []
     within_batch_vscores = np.full(shape=[adata.shape[1],n_batches], fill_value=np.nan)
-    within_batch_ff = np.full(shape=[adata.shape[1],n_batches], fill_value=np.nan)
-    within_batch_mu = np.full(shape=[adata.shape[1],n_batches], fill_value=np.nan)        
     for n,b in enumerate(batch_ids):
         adata_batch = adata[adata.obs[batch_key] == b].copy()
         with warnings.catch_warnings():
@@ -156,9 +158,7 @@ def get_variable_genes(adata, batch_key=None, filter_method='all', norm_counts_p
             vscore_stats = get_vscores_adata(adata_batch, norm_counts_per_cell=norm_counts_per_cell, min_vscore_pctl=min_vscore_pctl, min_counts=min_counts, min_cells=min_cells, in_place=False)
         hv_genes_this_batch = list(vscore_stats['hv_genes'])
         within_batch_hv_genes.append(hv_genes_this_batch)
-        within_batch_vscores[:,n] = adata.var['vscore']
-        within_batch_ff[:,n] = adata.var['ff_gene'] 
-        within_batch_mu[:,n] = adata.var['mu_gene']
+        within_batch_vscores[:,n] = get_min_max_norm(adata.var['vscore'])
 
     # set hvgene filter method
     if filter_method == 'any':
@@ -179,8 +179,6 @@ def get_variable_genes(adata, batch_key=None, filter_method='all', norm_counts_p
 
     # aggregate vscore stats
     adata.var['vscore'] = np.nanmean(within_batch_vscores, axis=1) 
-    adata.var['ff_gene'] = np.nanmean(within_batch_ff, axis=1) 
-    adata.var['mu_gene'] = np.nanmean(within_batch_mu, axis=1) 
 
     if in_place:
         return None
