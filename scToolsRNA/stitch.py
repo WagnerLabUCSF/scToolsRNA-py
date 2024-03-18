@@ -101,8 +101,8 @@ def get_stitch_dims(adata, timepoint_obs, batch_obs=None, vscore_min_pctl=95, vs
       # Get highly variable genes and up to the first 300 PCs
       get_variable_genes(adata_tmp, batch_key=batch_obs, filter_method=vscore_filter_method, min_vscore_pctl=vscore_min_pctl)
       nPCs_test_use = np.min([300, np.sum(adata_tmp.var.highly_variable)-1]) # in case nHVgenes is < nPCs
-      sc.pp.pca(adata_tmp, n_comps=nPCs_test_use, zero_center=True)
       get_significant_pcs(adata_tmp, n_iter=1, nPCs_test = nPCs_test_use, show_plots=False, verbose=False)
+      sc.pp.pca(adata_tmp, n_comps=nPCs_test_use, zero_center=True)
       this_round_nHVgenes = np.sum(np.sum(adata_tmp.var['highly_variable']))
       this_round_nSigPCs = adata_tmp.uns['n_sig_PCs']
       if verbose: 
