@@ -13,6 +13,7 @@ import pandas as pd
 
 # IDENTIFY HIGHLY VARIABLE GENES
 
+
 def runningquantile(x, y, p, nBins):
     """ calculate the quantile of y in bins of x """
 
@@ -159,15 +160,15 @@ def get_variable_genes(adata, batch_key=None, filter_method='all', norm_counts_p
         within_batch_ff[:,n] = adata.var['ff_gene'] 
         within_batch_mu[:,n] = adata.var['mu_gene']
 
-    # set the gene count threshold based on filter method
+    # set hvgene filter method
     if filter_method == 'any':
-        count_thresh = 0 # >0 = in 1 or more batches
+        count_thresh = 0 # >0 = keep hvgenes identified in 1 or more batches
     elif filter_method == 'multiple':
-        count_thresh = 1 # >1 = in 2 or more batches
+        count_thresh = 1 # >1 = only keep hvgenes identified in 2 or more batches
     elif filter_method == 'majority':
-        count_thresh = n_batches/2 # in >50% of batches
+        count_thresh = n_batches/2 # only keep hvgenes identified in >50% of batches
     elif filter_method == 'all':
-        count_thresh = n_batches - 1 # in 100% of batches     
+        count_thresh = n_batches - 1 # only keep hvgenes identified in 100% of batches     
 
     # perform gene filtering
     within_batch_hv_genes = [g for gene in within_batch_hv_genes for g in gene]
