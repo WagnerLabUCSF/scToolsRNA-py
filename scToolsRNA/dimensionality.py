@@ -119,7 +119,6 @@ def get_vscores_adata(adata, norm_counts_per_cell=1e6, min_vscore_pctl=85, min_c
         adata.uns['vscore_stats'] = stats
         adata.uns['vscore_stats']['hv_genes'] = list(adata.uns['vscore_stats']['hv_genes'])
 
-
         return None
     
     else:
@@ -146,14 +145,20 @@ def get_variable_genes(adata, batch_key=None, filter_method='all', norm_counts_p
     batch_ids = np.unique(adata.obs[batch_key])
     n_batches = len(batch_ids)
     within_batch_hv_genes = []
-    for b in batch_ids:
+    within_batch_vscores = np.full(shape=[adata.shape[1],n_batches], fill_value=np.nan)
+    within_batch_ff = np.full(shape=[adata.shape[1],n_batches], fill_value=np.nan)
+    within_batch_mu = np.full(shape=[adata.shape[1],n_batches], fill_value=np.nan)        
+    for n,b in enumerate(batch_ids):
         adata_batch = adata[adata.obs[batch_key] == b].copy()
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             vscore_stats = get_vscores_adata(adata_batch, norm_counts_per_cell=norm_counts_per_cell, min_vscore_pctl=min_vscore_pctl, min_counts=min_counts, min_cells=min_cells, in_place=False)
-        hv_genes_this_batch = list(vscore_stats['hv_genes']) 
+        hv_genes_this_batch = list(vscore_stats['hv_genes'])
         within_batch_hv_genes.append(hv_genes_this_batch)
-    
+        within_batch_vscores[:,n] = adata.var['vscore']
+        within_batch_ff[:,n] = adata.var['ff_gene'] 
+        within_batch_mu[:,n] = adata.var['mu_gene']
+
     # set the gene count threshold based on filter method
     if filter_method == 'any':
         count_thresh = 0 # >0 = in 1 or more batches
@@ -170,6 +175,11 @@ def get_variable_genes(adata, batch_key=None, filter_method='all', norm_counts_p
     within_batch_hv_genes = within_batch_hv_genes[c > count_thresh]
     adata.var['highly_variable'] = False
     adata.var.loc[within_batch_hv_genes, 'highly_variable'] = True
+
+    # aggregate vscore stats
+    adata.var['vscore'] = np.nanmean(within_batch_vscores, axis=1) 
+    adata.var['ff_gene'] = np.nanmean(within_batch_ff, axis=1) 
+    adata.var['mu_gene'] = np.nanmean(within_batch_mu, axis=1) 
 
     if in_place:
         return None
