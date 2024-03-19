@@ -164,7 +164,9 @@ def get_variable_genes(adata, batch_key=None, filter_method='all', n_genes=3000,
         count_thresh = n_batches - 1 # only keep hvgenes identified in 100% of batches
     elif filter_method == 'top_n_genes': 
         min_vscore_pctl = 0 # under this method we will return the top hv genes ranked by mean scaled vscore
-
+    else:
+        print('Invalid variable gene filtering method provided')    
+        
     # identify variable genes for each batch separately
     within_batch_hv_genes = []
     within_batch_vscores = np.full(shape=[adata.shape[1],n_batches], fill_value=np.nan)
