@@ -175,7 +175,7 @@ def stitch_compare_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_meth
   # Identify top variable genes and PC dimensions for a series of timepoints
   # Goal here is a fair comparison of each timepoint, so we implement the following:
   # (1) downsample # cells per timepoint to a fixed value
-  # (2) identify the top 3000 variable genes and the top 300 PCs per timepoint
+  # (2) identify the top variable genes and the top 300 PCs per timepoint
 
    
   # Determine the # of timepoints in adata
@@ -188,13 +188,14 @@ def stitch_compare_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_meth
 
   # Determine the smallest number of cells in any timepoint (for downsampling)
   min_cells_per_timepoint = np.min(adata.obs[timepoint_obs].value_counts())
+  print(min_cells_per_timepoint)
 
   # Generate a list of individual timepoint adatas
   adata_list = []
   for tp in timepoint_list:
     adata_tmp = adata[adata.obs[timepoint_obs]==tp]
     if downsample_cells:
-        adata_tmp = sc.pp.subsample(adata_tmp, n_obs=downsample_cells, copy=True)
+        adata_tmp = sc.pp.subsample(adata_tmp, n_obs=min_cells_per_timepoint, copy=True)
     adata_list.append(adata_tmp)
 
   # Initialize results lists
