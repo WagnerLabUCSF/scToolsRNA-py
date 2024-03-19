@@ -170,7 +170,7 @@ def plot_hvg_vs_sigpc(adata):
     plt.show()
 
 
-def stitch_compare_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='top_n_genes', downsample_cells=10000):
+def stitch_compare_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='top_n_genes'):
 '''
     Identify top variable genes and PC dimensions for a series of timepoints
     Goal here is a fair comparison of each timepoint, so we implement the following:
@@ -186,12 +186,14 @@ def stitch_compare_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_meth
   time_sort_index = adata.obs[timepoint_obs].sort_values(inplace=False).index
   adata = adata[time_sort_index,:].copy()
 
-  # Generate a list of individual timepoint adatas
+  # Determine the smallest number of cells in any timepoint (for downsampling)
+  downsample_cells = np.min(adata.obs[timepoint_obs].value_counts())
+
+  # Generate a list of individual timepoint adatas w/ downsampling
   adata_list = []
   for tp in timepoint_list:
     adata_tmp = adata[adata.obs[timepoint_obs]==tp]
-    if downsample_cells is not None and downsample_cells < len(adata_tmp):
-        adata_tmp = sc.pp.subsample(adata_tmp, n_obs=downsample_cells, copy=True)
+    adata_tmp = sc.pp.subsample(adata_tmp, n_obs=downsample_cells, copy=True)
     adata_list.append(adata_tmp)
 
   # Initialize results lists
