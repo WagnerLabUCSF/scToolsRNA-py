@@ -170,7 +170,7 @@ def plot_hvg_vs_sigpc(adata):
     plt.show()
 
 
-def get_stitch_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='top_n_genes', downsample_cells=10000):
+def stitch_compare_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='top_n_genes', downsample_cells=10000):
 
   # Determine the # of timepoints in adata
   timepoint_list = np.unique(adata.obs[timepoint_obs])
@@ -222,8 +222,8 @@ def get_stitch_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='
       stitch_HVgene_flags.append(adata_tmp.var['highly_variable'])
       stitch_HVgene_vscores.append(adata_tmp.var['vscore'])
       stitch_nSigPCs.append(this_round_nSigPCs)
-      stitch_PCs.append(adata_tmp.varm['X_pca'])
-      stitch_PC_loadings.append(adata_tmp.obsm['PCs'])
+      stitch_PCs.append(adata_tmp.obsm['X_pca'])
+      stitch_PC_loadings.append(adata_tmp.varm['PCs'])
 
   # Save results to dictionary
   adata.uns['stitch_dims'] = {'timepoint_obs': timepoint_obs, 'batch_obs': batch_obs, 'vscore_min_pctl': vscore_min_pctl, 
