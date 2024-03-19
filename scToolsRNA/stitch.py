@@ -170,14 +170,14 @@ def plot_hvg_vs_sigpc(adata):
     plt.show()
 
 
-def stitch_compare_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='top_n_genes'):
-'''
-    Identify top variable genes and PC dimensions for a series of timepoints
-    Goal here is a fair comparison of each timepoint, so we implement the following:
-    (1) downsample # cells per timepoint to a fixed value
-    (2) identify the top 3000 variable genes and the top 300 PCs per timepoint
+def stitch_compare_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='top_n_genes', downsample_cells=True):
+  
+  # Identify top variable genes and PC dimensions for a series of timepoints
+  # Goal here is a fair comparison of each timepoint, so we implement the following:
+  # (1) downsample # cells per timepoint to a fixed value
+  # (2) identify the top 3000 variable genes and the top 300 PCs per timepoint
 
-'''
+   
   # Determine the # of timepoints in adata
   timepoint_list = np.unique(adata.obs[timepoint_obs])
   n_timepoints = len(timepoint_list)
@@ -187,13 +187,14 @@ def stitch_compare_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_meth
   adata = adata[time_sort_index,:].copy()
 
   # Determine the smallest number of cells in any timepoint (for downsampling)
-  downsample_cells = np.min(adata.obs[timepoint_obs].value_counts())
+  min_cells_per_timepoint = np.min(adata.obs[timepoint_obs].value_counts())
 
-  # Generate a list of individual timepoint adatas w/ downsampling
+  # Generate a list of individual timepoint adatas
   adata_list = []
   for tp in timepoint_list:
     adata_tmp = adata[adata.obs[timepoint_obs]==tp]
-    adata_tmp = sc.pp.subsample(adata_tmp, n_obs=downsample_cells, copy=True)
+    if downsample_cells:
+        adata_tmp = sc.pp.subsample(adata_tmp, n_obs=downsample_cells, copy=True)
     adata_list.append(adata_tmp)
 
   # Initialize results lists
