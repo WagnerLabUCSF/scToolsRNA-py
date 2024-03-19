@@ -188,7 +188,6 @@ def stitch_compare_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_meth
 
   # Determine the smallest number of cells in any timepoint (for downsampling)
   min_cells_per_timepoint = np.min(adata.obs[timepoint_obs].value_counts())
-  print(min_cells_per_timepoint)
 
   # Generate a list of individual timepoint adatas
   adata_list = []
