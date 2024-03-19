@@ -170,7 +170,7 @@ def plot_hvg_vs_sigpc(adata):
     plt.show()
 
 
-def get_stitch_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='top_n_genes', verbose=False, downsample_cells=5000):
+def get_stitch_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='top_n_genes', downsample_cells=10000):
 
   # Determine the # of timepoints in adata
   timepoint_list = np.unique(adata.obs[timepoint_obs])
@@ -209,17 +209,15 @@ def get_stitch_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='
       # Normalize 
       pp_raw2norm(adata_tmp, include_raw_layers=False)
 
-      # Get highly variable genes and up to the first 300 PCs
+      # Get the top highly variable genes and up to the first 300 PCs
       get_variable_genes(adata_tmp, batch_key=batch_obs, filter_method=vscore_filter_method, min_vscore_pctl=vscore_min_pctl)
       nPCs_test_use = np.min([300, np.sum(adata_tmp.var.highly_variable)-1]) # in case nHVgenes is < nPCs
       get_significant_pcs(adata_tmp, n_iter=1, nPCs_test = nPCs_test_use, show_plots=False, verbose=False)
       sc.pp.pca(adata_tmp, n_comps=nPCs_test_use, zero_center=True)
+      
+      # Organize results
       this_round_nHVgenes = np.sum(np.sum(adata_tmp.var['highly_variable']))
       this_round_nSigPCs = adata_tmp.uns['n_sig_PCs']
-      if verbose: 
-        print('nHVgenes:', this_round_nHVgenes)
-        print('nSigPCs', this_round_nSigPCs)
-
       stitch_nHVgenes.append(this_round_nHVgenes)
       stitch_HVgene_flags.append(adata_tmp.var['highly_variable'])
       stitch_HVgene_vscores.append(adata_tmp.var['vscore'])
@@ -227,7 +225,7 @@ def get_stitch_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='
       stitch_PCs.append(adata_tmp.varm['X_pca'])
       stitch_PC_loadings.append(adata_tmp.obsm['PCs'])
 
-  # Store run settings & params
+  # Save results to dictionary
   adata.uns['stitch_dims'] = {'timepoint_obs': timepoint_obs, 'batch_obs': batch_obs, 'vscore_min_pctl': vscore_min_pctl, 
                               'vscore_filter_method': vscore_filter_method, 'stitch_timepoints': timepoint_list, 
                               'stitch_n_timepoints': n_timepoints, 'stitch_nHVgenes': stitch_nHVgenes, 
