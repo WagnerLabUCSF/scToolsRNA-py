@@ -140,12 +140,18 @@ def get_variable_genes(adata, batch_key=None, filter_method='all', n_genes=3000,
     # compute initial gene variability stats using the entire dataset
     get_vscores_adata(adata, norm_counts_per_cell=norm_counts_per_cell, min_vscore_pctl=min_vscore_pctl, min_counts=min_counts, min_cells=min_cells)
     
-    # if no batch key is provided, then we are done
-    if batch_key == None:
-        if in_place == True:
+    # batch handling: if no batches are provided we are already done
+    if batch_key == None: # 
+        if in_place == True: 
+            adata.var['vscore'] = get_min_max_norm(adata.var['vscore'])
             return adata
         else:
             return adata.var['highly_variable']
+    
+    # if multiple batches are present, then we will determine variable genes independently for each batch
+    else:
+        batch_ids = np.unique(adata.obs[batch_key])
+        n_batches = len(batch_ids)
 
     # set hvgene filter method
     if filter_method == 'any':
@@ -156,12 +162,10 @@ def get_variable_genes(adata, batch_key=None, filter_method='all', n_genes=3000,
         count_thresh = n_batches/2 # only keep hvgenes identified in >50% of batches
     elif filter_method == 'all':
         count_thresh = n_batches - 1 # only keep hvgenes identified in 100% of batches
-    elif filter_method == 'n_genes': 
+    elif filter_method == 'top_n_genes': 
         min_vscore_pctl = 0 # under this method we will return the top hv genes ranked by mean scaled vscore
 
-    # next identify variable genes for each batch separately
-    batch_ids = np.unique(adata.obs[batch_key])
-    n_batches = len(batch_ids)
+    # identify variable genes for each batch separately
     within_batch_hv_genes = []
     within_batch_vscores = np.full(shape=[adata.shape[1],n_batches], fill_value=np.nan)
     for n,b in enumerate(batch_ids):
@@ -177,7 +181,7 @@ def get_variable_genes(adata, batch_key=None, filter_method='all', n_genes=3000,
     adata.var['vscore'] = np.nanmean(within_batch_vscores, axis=1) # return the mean of scaled vscores across all batches
     
     # perform hv_gene filtering based on batch recurrence
-    if filter_method is not 'n_genes':
+    if filter_method is not 'top_n_genes':
         within_batch_hv_genes = [g for gene in within_batch_hv_genes for g in gene]
         within_batch_hv_genes, c = np.unique(within_batch_hv_genes, return_counts=True)
         hv_genes = within_batch_hv_genes[c > count_thresh]
