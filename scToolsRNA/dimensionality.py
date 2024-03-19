@@ -195,8 +195,6 @@ def get_variable_genes(adata, batch_key=None, filter_method='all', n_genes=3000,
     # update adata
     adata.var['highly_variable'] = False
     adata.var.loc[hv_genes, 'highly_variable'] = True    
-    #adata.var['highly_variable_batch_count'] = 0
-    #adata.var.loc[hv_genes, 'highly_variable_batch_count'] = hv_batch_count
 
     if in_place:
         return None

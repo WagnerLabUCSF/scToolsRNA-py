@@ -231,7 +231,6 @@ def stitch_compare_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_meth
       stitch_nHVgenes.append(this_round_nHVgenes)
       stitch_HVgene_flags.append(adata_tmp.var['highly_variable'])
       stitch_HVgene_vscores.append(adata_tmp.var['vscore'])
-      #stitch_HVgene_batch_count.append(adata_tmp.var['highly_variable_batch_count'])
       stitch_nSigPCs.append(this_round_nSigPCs)
       stitch_PCs.append(adata_tmp.obsm['X_pca'])
       stitch_PC_loadings.append(adata_tmp.varm['PCs'])
