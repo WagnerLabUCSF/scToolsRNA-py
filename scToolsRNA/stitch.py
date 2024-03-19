@@ -11,6 +11,8 @@ import plotly.graph_objects as go
 from .dimensionality import *
 from .workflows import *
 
+
+
 @contextmanager
 def disable_logging(highest_level=logging.CRITICAL):
     previous_level = logging.root.manager.disable
@@ -82,8 +84,6 @@ def get_stitch_dims(adata, timepoint_obs, batch_obs=None, vscore_min_pctl=95, vs
   stitch_nHVgenes = []
   stitch_HVgene_flags = []
   stitch_HVgene_vscores = []
-  stitch_HVgene_ff = []
-  stitch_HVgene_mu = []
   stitch_nSigPCs = []
   stitch_PCs = []
   stitch_PC_loadings = []
@@ -115,8 +115,6 @@ def get_stitch_dims(adata, timepoint_obs, batch_obs=None, vscore_min_pctl=95, vs
       stitch_nHVgenes.append(this_round_nHVgenes)
       stitch_HVgene_flags.append(adata_tmp.var['highly_variable'])
       stitch_HVgene_vscores.append(adata_tmp.var['vscore'])
-      stitch_HVgene_ff.append(adata_tmp.var['ff_gene'])
-      stitch_HVgene_mu.append(adata_tmp.var['mu_gene'])
       stitch_nSigPCs.append(this_round_nSigPCs)
       stitch_PCs.append(adata_tmp.varm['PCs'])
       stitch_PC_loadings.append(adata_tmp.obsm['X_pca'])
@@ -126,7 +124,6 @@ def get_stitch_dims(adata, timepoint_obs, batch_obs=None, vscore_min_pctl=95, vs
                               'vscore_filter_method': vscore_filter_method, 'stitch_timepoints': timepoint_list, 
                               'stitch_n_timepoints': n_timepoints, 'stitch_nHVgenes': stitch_nHVgenes, 
                               'stitch_HVgene_flags': stitch_HVgene_flags, 'stitch_HVgene_vscores': stitch_HVgene_vscores, 
-                              'stitch_HVgene_ff': stitch_HVgene_ff, 'stitch_HVgene_mu': stitch_HVgene_mu, 
                               'stitch_PCs': stitch_PCs, 'stitch_PC_loadings': stitch_PC_loadings, 'stitch_nSigPCs': stitch_nSigPCs}
  
   return adata
