@@ -18,6 +18,7 @@ def get_min_max_norm(data):
 
     return (data - np.nanmin(data)) / (np.nanmax(data) - np.nanmin(data))
 
+
 def runningquantile(x, y, p, nBins):
     """ calculate the quantile of y in bins of x """
 
@@ -158,7 +159,7 @@ def get_variable_genes(adata, batch_key=None, filter_method='all', norm_counts_p
             vscore_stats = get_vscores_adata(adata_batch, norm_counts_per_cell=norm_counts_per_cell, min_vscore_pctl=min_vscore_pctl, min_counts=min_counts, min_cells=min_cells, in_place=False)
         hv_genes_this_batch = list(vscore_stats['hv_genes'])
         within_batch_hv_genes.append(hv_genes_this_batch)
-        within_batch_vscores[:,n] = get_min_max_norm(adata.var['vscore'])
+        within_batch_vscores[:,n] = get_min_max_norm(adata.var['vscore']) # scale vscores 0 to 1
 
     # set hvgene filter method
     if filter_method == 'any':
@@ -178,7 +179,7 @@ def get_variable_genes(adata, batch_key=None, filter_method='all', norm_counts_p
     adata.var.loc[within_batch_hv_genes, 'highly_variable'] = True
 
     # aggregate vscore stats
-    adata.var['vscore'] = np.nanmean(within_batch_vscores, axis=1) 
+    adata.var['vscore'] = np.nanmean(within_batch_vscores, axis=1) # return the mean of scaled vscores, ignoring nan values
 
     if in_place:
         return None
