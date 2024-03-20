@@ -170,7 +170,7 @@ def plot_hvg_vs_sigpc(adata):
     plt.show()
 
 
-def stitch_compare_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='top_n_genes', vscore_min_pctl=85, downsample_cells=True):
+def stitch_compare_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='majority', vscore_min_pctl=85, downsample_cells=True):
   
   # Identify top variable genes and PC dimensions for a series of timepoints
   # Goal here is a fair comparison of each timepoint, so we implement the following:
