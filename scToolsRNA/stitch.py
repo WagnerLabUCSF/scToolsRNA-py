@@ -315,6 +315,14 @@ def stitch_compare_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_meth
   return adata
 
 
+def get_stitch_dims_df(adata):
+    
+    stitch_dims_df = pd.DataFrame({'HVgenes': adata.uns['stitch_dims']['stitch_nHVgenes'], 'nsigPCs': adata.uns['stitch_dims']['stitch_nSigPCs']},
+                        index=adata.uns['stitch_dims']['stitch_timepoints'])
+    
+    return stitch_dims_df
+
+
 def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric='correlation', vscore_min_pctl=85, vscore_filter_method=None, method='forward', use_harmony=True, max_iter_harmony=20, verbose=True):
 
   # Determine the # of timepoints in adata
