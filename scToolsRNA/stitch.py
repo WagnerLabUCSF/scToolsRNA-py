@@ -4,13 +4,19 @@ import scanpy as sc
 import numpy as np
 import scipy
 import logging
+
 from contextlib import contextmanager
 from umap.umap_ import fuzzy_simplicial_set
+import scipy.cluster.hierarchy as sch
+from scipy.spatial.distance import squareform
+
 import plotly.express as px
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+import matplotlib.cm as cm
+
 from .dimensionality import *
 from .workflows import *
-
 
 
 @contextmanager
@@ -62,7 +68,7 @@ def get_connectivities_from_dist_csr(D_csr, n_neighbors):
   return connectivities
 
 
-def plot_stitch_hvgene_overlaps(adata, jaccard=True, cmap='jet'):
+def plot_stitch_hvgene_overlaps(adata, jaccard=True, cmap='jet', zmax=None):
 
     labels = adata.uns['stitch_dims']['stitch_timepoints'].astype('int').astype('str')
     hv_flags = adata.uns['stitch_dims']['stitch_HVgene_flags']
@@ -82,24 +88,55 @@ def plot_stitch_hvgene_overlaps(adata, jaccard=True, cmap='jet'):
             overlap[i, j] = intersection_size / denom if denom != 0 else 0
             overlap[j, i] = overlap[i, j]
 
-    # Plot overlap matrix using Plotly heatmap
-    fig = px.imshow(overlap,
-                    color_continuous_scale=cmap,
-                    labels=dict(x='Timepoint Group (hpf)', y='Timepoint Group (hpf)'),
-                    x=labels,y=labels,
-                    title='HV Gene Overlap Matrix')
- 
-    # Add horizontal and vertical grid lines
-    for i in range(overlap.shape[1] + 1):
-      fig.add_shape(type='line', x0=i - 0.5, y0=-0.5, x1=i - 0.5, y1=overlap.shape[0] - 0.5, line=dict(color='black', width=1))
-    for i in range(overlap.shape[0] + 1):
-        fig.add_shape(type='line', x0=-0.5, y0=i - 0.5, x1=overlap.shape[1] - 0.5, y1=i - 0.5, line=dict(color='black', width=1))  
+    # Perform clustering
+    distances = 1 - overlap  # Convert similarities to distances
+    np.fill_diagonal(distances, 0) # Set diagonal elements to 0 to avoid numerical issues
+    condensed_dist = squareform(distances)
+    Z = sch.linkage(condensed_dist, method='ward', metric='euclidean')
+    clusters = sch.fcluster(Z, 4, criterion='maxclust')
+    clusters = clusters.reshape(len(clusters),1)
+
+    # Generate a list of categorical colors for the cluster key
+    colors = [cm.tab10(i) for i in range(len(np.unique(clusters)))]
+    colors = [f'rgb({int(r * 255)}, {int(g * 255)}, {int(b * 255)})' for r, g, b, _ in colors]
     
+    # Plot overlap matrix using Plotly heatmap
+    heatmap1 = go.Heatmap(z=overlap[::-1, :], colorscale=cmap,
+                          x=labels, y=labels[::-1],  # Reverse the order of labels in y
+                          colorbar=dict(title=''),  # Add colorbar
+                          hoverinfo='skip',  # Hide hoverinfo for cleaner display
+                          showscale=True,  # Hide color scale for cleaner display
+                          xgap=1, ygap=1,  # Add gaps between cells for gridlines
+                          hovertemplate='Jaccard Index: %{z}<extra></extra>',
+                          zauto=False, zmax=zmax)  # Custom hovertemplate
+
+    # Create the second heatmap trace without color bar
+    heatmap2 = go.Heatmap(z=clusters.transpose(), colorscale=colors, showscale=False)  # Only one column
+
+    # Create subplots with two columns
+    fig = make_subplots(rows=2, cols=1, row_heights=[0.02, 0.98], vertical_spacing=0.02)
+    fig.add_trace(heatmap1, row=2, col=1)
+    fig.add_trace(heatmap2, row=1, col=1)
+    
+    fig.update_layout(title='HV Gene Overlap Matrix with Clusters',
+                      font=dict(family='Helvetica, sans-serif', color='black'),
+                      width=600, height=600,  # set width and height to make the figure square
+                      plot_bgcolor='black',  # set plot background color
+                      xaxis2_showgrid=False, yaxis2_showgrid=False,  # hide gridlines
+                      xaxis_gridcolor='black', yaxis_gridcolor='black',
+                      margin=dict(l=100, r=100, t=100, b=100),
+                      coloraxis_colorbar_thickness=5,  # Set the thickness of the color bar
+                      coloraxis_colorbar_len=0.5,  # Set the length of the color bar
+                      xaxis1=dict(showticklabels=False, showgrid=False),  # Hide x-axis labels and grid for the second heatmap
+                      yaxis1=dict(showticklabels=False, showgrid=False))  # Hide x-axis labels and grid for the second heatmap
+     
+    fig.update_traces(colorbar=dict(thickness=10, len=0.5, x=1.05), selector=dict(type='heatmap'))
+
 
     fig.show()
 
 
-def plot_stitch_pcgene_overlaps(adata, jaccard=True, cmap='jet', n_genes_per_pc=200):
+def plot_stitch_pcgene_overlaps(adata, jaccard=True, cmap='jet', n_genes_per_pc=200, zmax=None):
 
     labels = adata.uns['stitch_dims']['stitch_timepoints'].astype('int').astype('str')
     pc_loadings_list = adata.uns['stitch_dims']['stitch_PC_loadings']
@@ -129,19 +166,51 @@ def plot_stitch_pcgene_overlaps(adata, jaccard=True, cmap='jet', n_genes_per_pc=
             overlap[i, j] = intersection_size / denom if denom != 0 else 0
             overlap[j, i] = overlap[i, j]
 
-    # Plot overlap matrix using Plotly heatmap
-    fig = px.imshow(overlap,
-                    color_continuous_scale=cmap,
-                    labels=dict(x='Timepoint Group (hpf)', y='Timepoint Group (hpf)'),
-                    x=labels,y=labels,
-                    title='PC Gene Overlap Matrix')
- 
-    # Add horizontal and vertical grid lines
-    for i in range(overlap.shape[1] + 1):
-      fig.add_shape(type='line', x0=i - 0.5, y0=-0.5, x1=i - 0.5, y1=overlap.shape[0] - 0.5, line=dict(color='black', width=1))
-    for i in range(overlap.shape[0] + 1):
-        fig.add_shape(type='line', x0=-0.5, y0=i - 0.5, x1=overlap.shape[1] - 0.5, y1=i - 0.5, line=dict(color='black', width=1))  
+    # Perform clustering
+    distances = 1 - overlap  # Convert similarities to distances
+    np.fill_diagonal(distances, 0) # Set diagonal elements to 0 to avoid numerical issues
+    condensed_dist = squareform(distances)
+    Z = sch.linkage(condensed_dist, method='ward', metric='euclidean')
+    clusters = sch.fcluster(Z, 4, criterion='maxclust')
+    clusters = clusters.reshape(len(clusters),1)
+
+    # Generate a list of categorical colors for the cluster key
+    colors = [cm.tab10(i) for i in range(len(np.unique(clusters)))]
+    colors = [f'rgb({int(r * 255)}, {int(g * 255)}, {int(b * 255)})' for r, g, b, _ in colors]
     
+    # Plot overlap matrix using Plotly heatmap
+    heatmap1 = go.Heatmap(z=overlap[::-1, :], colorscale=cmap,
+                          x=labels, y=labels[::-1],  # Reverse the order of labels in y
+                          colorbar=dict(title=''),  # Add colorbar
+                          hoverinfo='skip',  # Hide hoverinfo for cleaner display
+                          showscale=True,  # Hide color scale for cleaner display
+                          xgap=1, ygap=1,  # Add gaps between cells for gridlines
+                          hovertemplate='Jaccard Index: %{z}<extra></extra>',
+                          zauto=False, zmax=zmax)  # Custom hovertemplate
+
+    # Create the second heatmap trace without color bar
+    heatmap2 = go.Heatmap(z=clusters.transpose(), colorscale=colors, showscale=False)  # Only one column
+
+    # Create subplots with two columns
+    fig = make_subplots(rows=2, cols=1, row_heights=[0.02, 0.98], vertical_spacing=0.02)
+    fig.add_trace(heatmap1, row=2, col=1)
+    fig.add_trace(heatmap2, row=1, col=1)
+    
+    fig.update_layout(title='HV Gene Overlap Matrix with Clusters',
+                      font=dict(family='Helvetica, sans-serif', color='black'),
+                      width=600, height=600,  # set width and height to make the figure square
+                      plot_bgcolor='black',  # set plot background color
+                      xaxis2_showgrid=False, yaxis2_showgrid=False,  # hide gridlines
+                      xaxis_gridcolor='black', yaxis_gridcolor='black',
+                      margin=dict(l=100, r=100, t=100, b=100),
+                      coloraxis_colorbar_thickness=5,  # Set the thickness of the color bar
+                      coloraxis_colorbar_len=0.5,  # Set the length of the color bar
+                      xaxis1=dict(showticklabels=False, showgrid=False),  # Hide x-axis labels and grid for the second heatmap
+                      yaxis1=dict(showticklabels=False, showgrid=False))  # Hide x-axis labels and grid for the second heatmap
+     
+    fig.update_traces(colorbar=dict(thickness=10, len=0.5, x=1.05), selector=dict(type='heatmap'))
+
+
     fig.show()
 
 
