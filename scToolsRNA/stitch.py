@@ -4,6 +4,7 @@ import scanpy as sc
 import numpy as np
 import scipy
 import logging
+import gc
 
 from contextlib import contextmanager
 from umap.umap_ import fuzzy_simplicial_set
@@ -304,6 +305,11 @@ def stitch_compare_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_meth
       stitch_nSigPCs.append(this_round_nSigPCs)
       stitch_PCs.append(adata_tmp.obsm['X_pca'])
       stitch_PC_loadings.append(adata_tmp.varm['PCs'])
+
+      # Delete temp objects
+      adata_list[n] = []
+      del adata_tmp
+      gc.collect()
 
   # Save results to dictionary
   adata.uns['stitch_dims'] = {'timepoint_obs': timepoint_obs, 'batch_obs': batch_obs, 
