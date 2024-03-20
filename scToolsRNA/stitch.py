@@ -99,7 +99,7 @@ def plot_stitch_hvgene_overlaps(adata, jaccard=True, cmap='jet'):
     fig.show()
 
 
-def plot_stitch_pcgene_overlaps(adata, jaccard=True, cmap='jet', n_genes_per_pc=100):
+def plot_stitch_pcgene_overlaps(adata, jaccard=True, cmap='jet', n_genes_per_pc=200):
 
     labels = adata.uns['stitch_dims']['stitch_timepoints'].astype('int').astype('str')
     pc_loadings_list = adata.uns['stitch_dims']['stitch_PC_loadings']
@@ -243,6 +243,9 @@ def stitch_compare_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_meth
                               'stitch_X_pca': stitch_PCs, 'stitch_PC_loadings': stitch_PC_loadings, 'stitch_nSigPCs': stitch_nSigPCs}
  
   return adata
+
+
+def stitch_get_embeddings()
 
 
 def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric='correlation', vscore_min_pctl=95, vscore_filter_method=None, method='forward', use_harmony=True, max_iter_harmony=20, verbose=True):
