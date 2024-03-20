@@ -170,7 +170,7 @@ def plot_hvg_vs_sigpc(adata):
     plt.show()
 
 
-def stitch_compare_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='top_n_genes', downsample_cells=True):
+def stitch_compare_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='top_n_genes', vscore_min_pctl=85, downsample_cells=True):
   
   # Identify top variable genes and PC dimensions for a series of timepoints
   # Goal here is a fair comparison of each timepoint, so we implement the following:
@@ -220,7 +220,7 @@ def stitch_compare_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_meth
       pp_raw2norm(adata_tmp, include_raw_layers=False)
 
       # Get the top highly variable genes and up to the first 300 PCs
-      get_variable_genes(adata_tmp, batch_key=batch_obs, filter_method=vscore_filter_method)
+      get_variable_genes(adata_tmp, batch_key=batch_obs, filter_method=vscore_filter_method, min_vscore_pctl=vscore_min_pctl)
       nPCs_test_use = np.min([300, np.sum(adata_tmp.var.highly_variable)-1]) # in case nHVgenes is < nPCs
       get_significant_pcs(adata_tmp, n_iter=1, nPCs_test = nPCs_test_use, show_plots=False, verbose=False)
       sc.pp.pca(adata_tmp, n_comps=nPCs_test_use, zero_center=True)
@@ -248,7 +248,7 @@ def stitch_compare_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_meth
 def stitch_get_embeddings()
 
 
-def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric='correlation', vscore_min_pctl=95, vscore_filter_method=None, method='forward', use_harmony=True, max_iter_harmony=20, verbose=True):
+def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric='correlation', vscore_min_pctl=85, vscore_filter_method=None, method='forward', use_harmony=True, max_iter_harmony=20, verbose=True):
 
   # Determine the # of timepoints in adata
   timepoint_list = np.unique(adata.obs[timepoint_obs])
