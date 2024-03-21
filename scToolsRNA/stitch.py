@@ -197,7 +197,7 @@ def plot_stitch_pcgene_overlaps(adata, jaccard=True, cmap='jet', n_genes_per_pc=
     fig.add_trace(heatmap1, row=2, col=1)
     fig.add_trace(heatmap2, row=1, col=1)
     
-    fig.update_layout(title='HV Gene Overlap Matrix with Clusters',
+    fig.update_layout(title='PC Gene Overlap Matrix with Clusters',
                       font=dict(family='Helvetica, sans-serif', color='black'),
                       width=600, height=600,  # set width and height to make the figure square
                       plot_bgcolor='black',  # set plot background color
@@ -242,11 +242,10 @@ def plot_hvg_vs_sigpc(adata):
 
 def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='majority', vscore_min_pctl=85, downsample_cells=True):
   
+  #
   # Identify top variable genes and PC dimensions for a series of timepoints
-  # Goal here is a fair comparison of each timepoint, so we implement the following:
-  # (1) [Optional] Downsample # cells per timepoint to match the timepoint with the fewest # cells
-  # (2) Identify the top variable genes
-  # (3) Identify the # of significant PCs
+  # This function will update adata with adata.uns['stitch_dims'], a dictionary that contains the
+  # results of the dimensionality tests.  
   #
    
   # Determine the # of timepoints in adata
