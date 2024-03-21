@@ -315,7 +315,8 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='
                               'vscore_filter_method': vscore_filter_method, 'stitch_timepoints': timepoint_list, 
                               'stitch_n_timepoints': n_timepoints, 'stitch_nHVgenes': stitch_nHVgenes, 
                               'stitch_HVgene_flags': stitch_HVgene_flags, 'stitch_HVgene_vscores': stitch_HVgene_vscores, 
-                              'stitch_X_pca': stitch_PCs, 'stitch_PC_loadings': stitch_PC_loadings, 'stitch_nSigPCs': stitch_nSigPCs}
+                              'stitch_PC_loadings': stitch_PC_loadings, 'stitch_nSigPCs': stitch_nSigPCs}
+                              #'stitch_X_pca': stitch_PCs
  
   return adata
 
@@ -382,7 +383,7 @@ def stitch_get_graph(adata, timepoint_obs, batch_obs=None, n_neighbors=15, dista
 
       # Get a pca embedding for adata_ref
       #restore hvg
-      #restore # sig pcs and pca embeddings
+      #restore pca and the n_sig_pc threshold
 
 
       sc.pp.pca(adata_ref, n_comps=adata_ref.uns['n_sig_PCs'], zero_center=True)
