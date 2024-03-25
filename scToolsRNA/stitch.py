@@ -329,133 +329,9 @@ def stitch_get_dims_df(adata):
     return stitch_dims_df
 
 
-def stitch_get_graph(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric='correlation', vscore_min_pctl=85, vscore_filter_method=None, method='forward', use_harmony=True, max_iter_harmony=20, verbose=True):
-
-  # Determine the # of timepoints in adata
-  timepoint_list = np.unique(adata.obs[timepoint_obs])
-  n_timepoints = len(timepoint_list)
-  n_stitch_rounds = n_timepoints - 1
-
-  # Sort the cells in adata by timepoint
-  time_sort_index = adata.obs[timepoint_obs].sort_values(inplace=False).index
-  adata = adata[time_sort_index,:].copy()
-
-  # Generate a list of individual timepoint adatas
-  adata_list = []
-  for tp in timepoint_list:
-    adata_list.append(adata[adata.obs[timepoint_obs]==tp])
-
-  # Set directionality of time projections
-  if method=='forward':
-    arrow_str = '->'
-    anchor_round = n_stitch_rounds - 1 # anchor = last round
-  elif method=='reverse':
-    arrow_str = '<-'
-    anchor_round = 0 # anchor = first round
-
-  # Initialize results lists
-  base_counter = 0
-  X_d_stitch_rows = []
-  X_d_stitch_cols = []
-  X_d_stitch_data = []
-  X_d_stitch_combined = scipy.sparse.coo_matrix((len(adata), len(adata)))
-
-  # Get neighbor graph for each stitch_round (each timepoint pair)
-  with warnings.catch_warnings():
-    warnings.simplefilter('ignore')
-    for n in range(n_stitch_rounds):
-      
-      if verbose: print('Stitching Timepoints:', timepoint_list[n], arrow_str, timepoint_list[n+1])
-
-      # Specify the reference and projection adatas this round
-      adata_t1 = adata_list[n].copy()
-      adata_t2 = adata_list[n+1].copy()
-      if method=='forward':
-        adata_ref = adata_t2
-        adata_prj = adata_t1
-      elif method=='reverse':
-        adata_ref = adata_t1
-        adata_prj = adata_t2
-
-      # Normalize the two adata objects separately
-      pp_raw2norm(adata_t1, include_raw_layers=False)
-      pp_raw2norm(adata_t2, include_raw_layers=False)
-
-      # Get a pca embedding for adata_ref
-      #restore hvg
-      #restore pca and the n_sig_pc threshold
-
-
-      sc.pp.pca(adata_ref, n_comps=adata_ref.uns['n_sig_PCs'], zero_center=True)
-      sc.pp.neighbors(adata_ref, n_neighbors=n_neighbors, n_pcs=adata_ref.uns['n_sig_PCs'], metric=distance_metric, use_rep='X_pca')
-
-      # Embed adata_prj into the pca subspace defined by adata_ref
-      sc.tl.ingest(adata_prj, adata_ref, embedding_method='pca')
-
-      # Concatenate the pca projections for both timepoints in chronological order
-      adata_t1t2 = adata_t1.concatenate(adata_t2, batch_categories=['t1', 't2'])
-      stitch_nBatches.append(len(np.unique(adata_ref.obs[batch_obs])))
-
-      # Generate a t1-t2 neighbor graph (a sparse COO matrix) in the joint pca space
-      if use_harmony: # include Harmony batch correction
-        with disable_logging():
-          sc.external.pp.harmony_integrate(adata_t1t2, batch_obs, basis='X_pca', adjusted_basis='X_pca_harmony', max_iter_harmony=max_iter_harmony, verbose=False)
-          sc.pp.neighbors(adata_t1t2, n_neighbors=n_neighbors, metric=distance_metric, use_rep='X_pca_harmony')
-          del adata_t1t2.uns['neighbors']['params']['use_rep']
-      else: # version without Harmony
-        sc.pp.neighbors(adata_t1t2, n_neighbors=n_neighbors, metric=distance_metric)
-      X_d_coo = adata_t1t2.obsp['distances'].tocoo()
-      neighbors_settings = adata_t1t2.uns['neighbors']
-
-      # Filter adata_ref self-edges in the non-anchor timepoints
-      if n != anchor_round: 
-
-        # Flag self-edges within adata_ref
-        row_indices, col_indices = X_d_coo.nonzero()
-        if method=='reverse':
-          row_flag = row_indices<len(adata_ref)
-          col_flag = col_indices<len(adata_ref)
-        elif method=='forward':
-          row_flag = row_indices>=len(adata_prj)
-          col_flag = col_indices>=len(adata_prj)
-        adata_ref_self_edge = row_flag & col_flag
-
-        # Apply self-edge filter
-        X_d_coo.data = X_d_coo.data[~adata_ref_self_edge]
-        X_d_coo.col = X_d_coo.col[~adata_ref_self_edge]
-        X_d_coo.row = X_d_coo.row[~adata_ref_self_edge]
-
-      # Concatenate row, column, data for this stitch round
-      X_d_stitch_rows = np.concatenate((X_d_stitch_rows, X_d_coo.row + base_counter))
-      X_d_stitch_cols = np.concatenate((X_d_stitch_cols, X_d_coo.col + base_counter))
-      X_d_stitch_data = np.concatenate((X_d_stitch_data, X_d_coo.data))
-      #X_d_coo = scipy.sparse.coo_matrix((X_d_coo.data, (X_d_coo.row + base_counter, X_d_coo.col + base_counter)), shape=coo_shape)
-      #X_d_stitch_combined = scipy.sparse.vstack([X_d_stitch_combined, X_d_coo])
-
-      # Increment base_counter by the # of cells in adata_t1
-      base_counter += len(adata_t1)
-
-  # Assemble the full STITCH graph as a COO matrix
-  adata.obsp['distances'] = scipy.sparse.coo_matrix((X_d_stitch_data, (X_d_stitch_rows, X_d_stitch_cols)), shape=(len(adata), len(adata))).tocsr()
-  #adata.obsp['distances'] = X_d_stitch_combined.tocsr()
-
-  # Compute connectivities from neighbor distances (umap-style)
-  adata.obsp['connectivities'] = get_connectivities_from_dist_csr(adata.obsp['distances'], n_neighbors)
-
-  # Store run settings & params
-  adata.uns['neighbors'] = neighbors_settings
-  adata.uns['stitch_settings'] = {'timepoint_obs': timepoint_obs, 'batch_obs': batch_obs, 'n_neighbors': n_neighbors,'distance_metric': distance_metric,
-                                  'vscore_min_pctl': vscore_min_pctl, 'vscore_filter_method': vscore_filter_method, 'method': method,
-                                  'use_harmony': use_harmony, 'max_iter_harmony': max_iter_harmony}
-  adata.uns['stitch_results'] = {'stitch_timepoints': timepoint_list, 'stitch_n_timepoints': n_timepoints, 'stitch_n_rounds': n_stitch_rounds,
-                                'stitch_nHVgenes': stitch_nHVgenes, 'stitch_HVgene_flags': stitch_HVgene_flags, 'stitch_nSigPCs': stitch_nSigPCs, 'stitch_nBatches': stitch_nBatches}
- 
-  return adata
-
-
 ### DON'T TOUCH !! ###
 
-def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric='correlation', vscore_min_pctl=85, vscore_filter_method=None, method='forward', use_harmony=True, max_iter_harmony=20, verbose=True):
+def stitch_orig(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric='correlation', vscore_min_pctl=85, vscore_filter_method=None, method='forward', use_harmony=True, max_iter_harmony=20, verbose=True):
 
   # Determine the # of timepoints in adata
   timepoint_list = np.unique(adata.obs[timepoint_obs])
@@ -592,6 +468,84 @@ def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric
  
   return adata
 
+def stitch_get_dims_orig(adata, timepoint_obs, batch_obs=None, vscore_filter_method='majority', vscore_min_pctl=85, downsample_cells=True):
+  
+  #
+  # Identify top variable genes and PC dimensions for a series of timepoints
+  # This function will update adata with adata.uns['stitch_dims'], a dictionary that contains the
+  # results of the dimensionality tests.  
+  #
+   
+  # Determine the # of timepoints in adata
+  timepoint_list = np.unique(adata.obs[timepoint_obs])
+  n_timepoints = len(timepoint_list)
 
+  # Sort the cells in adata by timepoint
+  time_sort_index = adata.obs[timepoint_obs].sort_values(inplace=False).index
+  adata = adata[time_sort_index,:].copy()
+
+  # Determine the smallest number of cells in any timepoint (for downsampling)
+  min_cells_per_timepoint = np.min(adata.obs[timepoint_obs].value_counts())
+
+  # Generate a list of individual timepoint adatas
+  adata_list = []
+  for tp in timepoint_list:
+    adata_tmp = adata[adata.obs[timepoint_obs]==tp]
+    if downsample_cells:
+        adata_tmp = sc.pp.subsample(adata_tmp, n_obs=min_cells_per_timepoint, copy=True)
+    adata_list.append(adata_tmp)
+
+  # Initialize results lists
+  stitch_nHVgenes = []
+  stitch_HVgene_flags = []
+  stitch_HVgene_vscores = []
+  stitch_HVgene_batch_count = []
+  stitch_nSigPCs = []
+  stitch_PCs = []
+  stitch_PC_loadings = []
+  
+  # Get dimensionality info for each timepoint
+  with warnings.catch_warnings():
+    warnings.simplefilter('ignore')
+    for n in range(n_timepoints):
+      
+      print('Computing gene vscores and PCs for:', timepoint_list[n])
+
+      # Specify the adata for this timepoint
+      adata_tmp = adata_list[n].copy()
+      
+      # Normalize 
+      pp_raw2norm(adata_tmp, include_raw_layers=False)
+
+      # Get the top highly variable genes and up to the first 300 PCs
+      get_variable_genes(adata_tmp, batch_key=batch_obs, filter_method=vscore_filter_method, min_vscore_pctl=vscore_min_pctl)
+      nPCs_test_use = np.min([300, np.sum(adata_tmp.var.highly_variable)-1]) # in case nHVgenes is < nPCs
+      get_significant_pcs(adata_tmp, n_iter=1, nPCs_test = nPCs_test_use, show_plots=False, verbose=False)
+      sc.pp.pca(adata_tmp, n_comps=nPCs_test_use, zero_center=True)
+      
+      # Organize results
+      this_round_nHVgenes = np.sum(np.sum(adata_tmp.var['highly_variable']))
+      this_round_nSigPCs = adata_tmp.uns['n_sig_PCs']
+      stitch_nHVgenes.append(this_round_nHVgenes)
+      stitch_HVgene_flags.append(adata_tmp.var['highly_variable'])
+      stitch_HVgene_vscores.append(adata_tmp.var['vscore'])
+      stitch_nSigPCs.append(this_round_nSigPCs)
+      stitch_PCs.append(adata_tmp.obsm['X_pca'])
+      stitch_PC_loadings.append(adata_tmp.varm['PCs'])
+
+      # Delete temp objects
+      adata_list[n] = []
+      del adata_tmp
+      gc.collect()
+
+  # Save results to dictionary
+  adata.uns['stitch_dims'] = {'timepoint_obs': timepoint_obs, 'batch_obs': batch_obs, 
+                              'vscore_filter_method': vscore_filter_method, 'stitch_timepoints': timepoint_list, 
+                              'stitch_n_timepoints': n_timepoints, 'stitch_nHVgenes': stitch_nHVgenes, 
+                              'stitch_HVgene_flags': stitch_HVgene_flags, 'stitch_HVgene_vscores': stitch_HVgene_vscores, 
+                              'stitch_PC_loadings': stitch_PC_loadings, 'stitch_nSigPCs': stitch_nSigPCs}
+                              #'stitch_X_pca': stitch_PCs
+ 
+  return adata
 
 
