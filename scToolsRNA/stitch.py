@@ -71,8 +71,11 @@ def get_connectivities_from_dist_csr(D_csr, n_neighbors):
 
 def plot_stitch_hvgene_overlaps(adata, jaccard=True, cmap='jet', zmax=None):
 
-    labels = adata.uns['stitch_dims']['stitch_timepoints'].astype('int').astype('str')
-    hv_flags = adata.uns['stitch_dims']['stitch_HVgene_flags']
+    labels = adata.uns['stitch']['timepoints'].astype('int').astype('str')
+    
+    hv_flags = []
+    for j in range(adata.uns['stitch']['nTimepoints']):
+        hv_flags.append(adata.uns['stitch']['adatas'][j].var.highly_variable)
 
     # Calculate overlap scores between boolean arrays for the HVgene sets
     n = len(hv_flags)
@@ -139,8 +142,11 @@ def plot_stitch_hvgene_overlaps(adata, jaccard=True, cmap='jet', zmax=None):
 
 def plot_stitch_pcgene_overlaps(adata, jaccard=True, cmap='jet', n_genes_per_pc=200, zmax=None):
 
-    labels = adata.uns['stitch_dims']['stitch_timepoints'].astype('int').astype('str')
-    pc_loadings_list = adata.uns['stitch_dims']['stitch_PC_loadings']
+    labels = adata.uns['stitch']['timepoints'].astype('int').astype('str')
+
+    pc_loadings_list = []
+    for j in range(adata.uns['stitch']['nTimepoints']):
+        pc_loadings_list.append(adata.uns['stitch']['adatas'][j].varm['PCs'])
 
     # Get a list of the top-loaded genes from PCA loading matrices
     pvgenes_list = []
