@@ -267,14 +267,9 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='
         adata_tmp = sc.pp.subsample(adata_tmp, n_obs=min_cells_per_timepoint, copy=True)
     adata_list.append(adata_tmp)
 
-  # Initialize results lists
+  # Initialize results dictionaries
   stitch_nHVgenes = []
-  stitch_HVgene_flags = []
-  stitch_HVgene_vscores = []
-  stitch_HVgene_batch_count = []
   stitch_nSigPCs = []
-  stitch_PCs = []
-  stitch_PC_loadings = []
   
   # Get dimensionality info for each timepoint
   with warnings.catch_warnings():
@@ -299,24 +294,19 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='
       this_round_nHVgenes = np.sum(np.sum(adata_tmp.var['highly_variable']))
       this_round_nSigPCs = adata_tmp.uns['n_sig_PCs']
       stitch_nHVgenes.append(this_round_nHVgenes)
-      stitch_HVgene_flags.append(adata_tmp.var['highly_variable'])
-      stitch_HVgene_vscores.append(adata_tmp.var['vscore'])
       stitch_nSigPCs.append(this_round_nSigPCs)
-      stitch_PCs.append(adata_tmp.obsm['X_pca'])
-      stitch_PC_loadings.append(adata_tmp.varm['PCs'])
+      
 
       # Delete temp objects
-      adata_list[n] = []
-      del adata_tmp
+      del adata_tmp.X
+      adata_list[n] = adata_tmp.copy()
       gc.collect()
 
   # Save results to dictionary
-  adata.uns['stitch_dims'] = {'timepoint_obs': timepoint_obs, 'batch_obs': batch_obs, 
-                              'vscore_filter_method': vscore_filter_method, 'stitch_timepoints': timepoint_list, 
-                              'stitch_n_timepoints': n_timepoints, 'stitch_nHVgenes': stitch_nHVgenes, 
-                              'stitch_HVgene_flags': stitch_HVgene_flags, 'stitch_HVgene_vscores': stitch_HVgene_vscores, 
-                              'stitch_PC_loadings': stitch_PC_loadings, 'stitch_nSigPCs': stitch_nSigPCs}
-                              #'stitch_X_pca': stitch_PCs
+  adata.uns['stitch'] = {'timepoint_obs': timepoint_obs, 'batch_obs': batch_obs, 
+                         'vscore_filter_method': vscore_filter_method, 'stitch_timepoints': timepoint_list, 
+                         'stitch_n_timepoints': n_timepoints, 'stitch_nHVgenes': stitch_nHVgenes, 
+                         'stitch_nSigPCs': stitch_nSigPCs, 'stitch_adatas': adata_list}
  
   return adata
 
