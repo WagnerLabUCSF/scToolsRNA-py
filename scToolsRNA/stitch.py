@@ -215,25 +215,25 @@ def plot_stitch_pcgene_overlaps(adata, jaccard=True, cmap='jet', n_genes_per_pc=
     fig.show()
 
 
-def plot_hvg_vs_sigpc(adata):
+def plot_stitch_dims(adata):
 
     # Plot #s of HV genes and PC dimensions
 
-    df = pd.DataFrame({'Timepoint': adata.uns['stitch_dims']['stitch_timepoints'],
-                      'nHVgenes':  adata.uns['stitch_dims']['stitch_nHVgenes'],
-                      'nPCDims':   adata.uns['stitch_dims']['stitch_nSigPCs']})
+    df = pd.DataFrame({'Timepoint': adata.uns['stitch']['timepoints'],
+                       'nHVgenes':  adata.uns['stitch']['nHVgenes'],
+                       'nSigPCs':   adata.uns['stitch']['nSigPCs']})
 
     fig, ax1 = plt.subplots()
 
     ax1.plot(df['Timepoint'], df['nHVgenes'], color='r', linewidth=2)
-    ax1.set_ylabel('# HV Genes', color='r')
+    ax1.set_ylabel('# Highly Variable Genes', color='r')
     ax1.set_xlabel('Timepoint Group (hpf)', color='k')
     ax1.tick_params(axis='y', labelcolor='r')
     ax1.set_yscale('log')
 
     ax2 = ax1.twinx()
-    ax2.plot(df['Timepoint'], df['nPCDims'], color='b', linewidth=2)
-    ax2.set_ylabel('# Sig PCs', color='b')
+    ax2.plot(df['Timepoint'], df['nSigPCs'], color='b', linewidth=2)
+    ax2.set_ylabel('# Significant PC Dimensions', color='b')
     ax2.tick_params(axis='y', labelcolor='b')
     ax2.set_yscale('linear')
 
@@ -299,22 +299,24 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='
 
       # Delete temp objects
       del adata_tmp.X
+      del adata_tmp.layers
       adata_list[n] = adata_tmp.copy()
+      del adata_tmp
       gc.collect()
 
   # Save results to dictionary
   adata.uns['stitch'] = {'timepoint_obs': timepoint_obs, 'batch_obs': batch_obs, 
-                         'vscore_filter_method': vscore_filter_method, 'stitch_timepoints': timepoint_list, 
-                         'stitch_n_timepoints': n_timepoints, 'stitch_nHVgenes': stitch_nHVgenes, 
-                         'stitch_nSigPCs': stitch_nSigPCs, 'stitch_adatas': adata_list}
+                         'vscore_filter_method': vscore_filter_method, 'timepoints': timepoint_list, 
+                         'nTimepoints': n_timepoints, 'nHVgenes': stitch_nHVgenes, 
+                         'nSigPCs': stitch_nSigPCs, 'adatas': adata_list}
  
   return adata
 
 
 def stitch_get_dims_df(adata):
     
-    stitch_dims_df = pd.DataFrame({'HVgenes': adata.uns['stitch_dims']['stitch_nHVgenes'], 'nsigPCs': adata.uns['stitch_dims']['stitch_nSigPCs']},
-                        index=adata.uns['stitch_dims']['stitch_timepoints'])
+    stitch_dims_df = pd.DataFrame({'nHVgenes': adata.uns['stitch']['nHVgenes'], 'nSigPCs': adata.uns['stitch']['nSigPCs']},
+                        index=adata.uns['stitch']['timepoints'])
     
     return stitch_dims_df
 
