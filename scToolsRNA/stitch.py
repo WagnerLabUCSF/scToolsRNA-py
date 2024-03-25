@@ -453,7 +453,7 @@ def stitch_get_graph(adata, timepoint_obs, batch_obs=None, n_neighbors=15, dista
   return adata
 
 
-### DON'T TOUCH 
+### DON'T TOUCH !! ###
 
 def stitch(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric='correlation', vscore_min_pctl=85, vscore_filter_method=None, method='forward', use_harmony=True, max_iter_harmony=20, verbose=True):
 
