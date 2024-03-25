@@ -295,6 +295,8 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='
       nPCs_test_use = np.min([300, np.sum(adata_tmp.var.highly_variable)-1]) # in case nHVgenes is < nPCs
       get_significant_pcs(adata_tmp, n_iter=1, nPCs_test = nPCs_test_use, show_plots=False, verbose=False)
       sc.pp.pca(adata_tmp, n_comps=nPCs_test_use, zero_center=True)
+      sc.external.pp.harmony_integrate(adata_tmp, batch_obs, basis='X_pca', adjusted_basis='X_pca_harmony', max_iter_harmony=20, verbose=False)
+
       
       # Organize results
       this_round_nHVgenes = np.sum(np.sum(adata_tmp.var['highly_variable']))
@@ -327,8 +329,11 @@ def stitch_get_dims_df(adata):
     return stitch_dims_df
 
 
-### DON'T TOUCH !! ###
 
+
+
+
+### DON'T TOUCH !! ###
 def stitch_orig(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric='correlation', vscore_min_pctl=85, vscore_filter_method=None, method='forward', use_harmony=True, max_iter_harmony=20, verbose=True):
 
   # Determine the # of timepoints in adata
@@ -465,6 +470,7 @@ def stitch_orig(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_m
                                 'stitch_nHVgenes': stitch_nHVgenes, 'stitch_HVgene_flags': stitch_HVgene_flags, 'stitch_nSigPCs': stitch_nSigPCs, 'stitch_nBatches': stitch_nBatches}
  
   return adata
+
 
 def stitch_get_dims_orig(adata, timepoint_obs, batch_obs=None, vscore_filter_method='majority', vscore_min_pctl=85, downsample_cells=True):
   
