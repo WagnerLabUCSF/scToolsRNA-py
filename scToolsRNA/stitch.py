@@ -246,12 +246,17 @@ def plot_stitch_dims(adata):
     plt.show()
 
 
-def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='majority', vscore_min_pctl=85, downsample_cells=True):
+def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='majority', vscore_min_pctl=85, use_harmony=True, downsample_cells=False):
   
   #
-  # Identify top variable genes and PC dimensions for a series of timepoints
-  # This function will update adata with adata.uns['stitch']
+  # Identify top variable genes and PC embeddings for a series of basis timepoints in adata
+  # This function will update adata with a dictionary located at: adata.uns['stitch']
   #
+  # This function provides the information on embedding spaces for each timepoint and is a
+  # prerequisite for next steps:
+  # - constructing a 'forward' or 'reverse' stitch graph
+  # - converting cells to metacells within each timepoint
+  # 
    
   # Determine the # of timepoints in adata
   timepoint_list = np.unique(adata.obs[timepoint_obs])
@@ -281,7 +286,7 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='
     warnings.simplefilter('ignore')
     for n in range(n_timepoints):
       
-      print('Computing gene vscores and PCs for:', timepoint_list[n])
+      print('Computing gene vscores and PC embeddings for:', timepoint_list[n])
 
       # Specify the adata for this timepoint
       adata_tmp = adata_list[n].copy()
@@ -294,7 +299,7 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='
       nPCs_test_use = np.min([300, np.sum(adata_tmp.var.highly_variable)-1]) # in case nHVgenes is < nPCs
       get_significant_pcs(adata_tmp, n_iter=1, nPCs_test = nPCs_test_use, show_plots=False, verbose=False)
       sc.pp.pca(adata_tmp, n_comps=nPCs_test_use, zero_center=True)
-      if batch_obs is not None:
+      if batch_obs is not None and use_harmony:
           with disable_logging():
               sc.external.pp.harmony_integrate(adata_tmp, batch_obs, basis='X_pca', adjusted_basis='X_pca_harmony', max_iter_harmony=20, verbose=False)
       
@@ -304,18 +309,20 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='
       stitch_nHVgenes.append(this_round_nHVgenes)
       stitch_nSigPCs.append(this_round_nSigPCs)
       
-      # Delete temp objects
+      # Clean up objects from this round
       del adata_tmp.X
       del adata_tmp.layers
       adata_list[n] = adata_tmp.copy()
       del adata_tmp
       gc.collect()
 
+
   # Save results to dictionary
   adata.uns['stitch'] = {'timepoint_obs': timepoint_obs, 'batch_obs': batch_obs, 
-                         'vscore_filter_method': vscore_filter_method, 'timepoints': timepoint_list, 
-                         'nTimepoints': n_timepoints, 'nHVgenes': stitch_nHVgenes, 
-                         'nSigPCs': stitch_nSigPCs, 'adatas': adata_list}
+                         'vscore_filter_method': vscore_filter_method, 'vscore_min_pctl': vscore_min_pctl, 
+                         'timepoints': timepoint_list, 'nTimepoints': n_timepoints, 'nHVgenes': stitch_nHVgenes, 
+                         'nSigPCs': stitch_nSigPCs, 'adatas': adata_list, 'use_harmony': use_harmony, 
+                         'downsample_cells': downsample_cells}
  
   return adata
 
@@ -326,6 +333,135 @@ def stitch_get_dims_df(adata):
                         index=adata.uns['stitch']['timepoints'])
     
     return stitch_dims_df
+
+
+def stitch_get_graph(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric='correlation', method='forward', use_harmony=True, max_iter_harmony=20, verbose=True):
+
+  # Determine the # of timepoints in adata
+  timepoint_list = adata.uns['stitch']['timepoints']
+  n_timepoints = adata.uns['stitch']['nTimepoints']
+  n_stitch_rounds = n_timepoints - 1
+
+  # Sort the cells in adata by timepoint
+  time_sort_index = adata.obs[timepoint_obs].sort_values(inplace=False).index
+  adata = adata[time_sort_index,:].copy()
+
+  # Get the previously built list of individual timepoint adatas
+  adata_list = adata.uns['stitch']['adatas']
+  #adata_list = []
+  #for tp in timepoint_list:
+  #  adata_list.append(adata[adata.obs[timepoint_obs]==tp])
+
+  # Set directionality of time projections
+  if method=='forward':
+    arrow_str = '->'
+    anchor_round = n_stitch_rounds - 1 # anchor = last round
+  elif method=='reverse':
+    arrow_str = '<-'
+    anchor_round = 0 # anchor = first round
+
+  # Initialize results lists
+  base_counter = 0
+  X_d_stitch_rows = []
+  X_d_stitch_cols = []
+  X_d_stitch_data = []
+  stitch_nHVgenes = []
+  stitch_HVgene_flags = []
+  stitch_nSigPCs = []
+  stitch_nBatches = []
+  coo_shape = (len(adata), len(adata))
+  X_d_stitch_combined = scipy.sparse.coo_matrix(coo_shape)
+
+  # Get neighbor graph for each stitch_round (each timepoint pair)
+  with warnings.catch_warnings():
+    warnings.simplefilter('ignore')
+    for n in range(n_stitch_rounds):
+      
+      if verbose: print('Stitching Timepoints:', timepoint_list[n], arrow_str, timepoint_list[n+1])
+
+      # Specify the reference and projection adatas for this round
+      adata_t1 = adata_list[n].copy()
+      adata_t2 = adata_list[n+1].copy()
+      if method=='forward':
+        adata_ref = adata_t2
+        adata_prj = adata_t1
+      elif method=='reverse':
+        adata_ref = adata_t1
+        adata_prj = adata_t2
+
+      # Normalize the two adata objects separately from raw counts
+      adata_t1.X = adata[adata_t1.obs_names].X.copy()
+      adata_t2.X = adata[adata_t2.obs_names].X.copy()
+      pp_raw2norm(adata_t1, include_raw_layers=False)
+      pp_raw2norm(adata_t2, include_raw_layers=False)
+
+      # Get a pca embedding for adata_ref (this should already have been done)
+      #sc.pp.pca(adata_ref, n_comps=adata_ref.uns['n_sig_PCs'], zero_center=True)
+      #sc.pp.neighbors(adata_ref, n_neighbors=n_neighbors, n_pcs=adata_ref.uns['n_sig_PCs'], metric=distance_metric, use_rep='X_pca')
+
+      # Embed adata_prj into the pca subspace defined by adata_ref
+      sc.tl.ingest(adata_prj, adata_ref, embedding_method='pca')
+
+      # Concatenate the pca projections for both timepoints in chronological order
+      adata_t1t2 = adata_t1.concatenate(adata_t2, batch_categories=['t1', 't2'])
+
+      # Generate a t1-t2 neighbor graph (a sparse COO matrix) in the joint pca space
+      if use_harmony: # include Harmony batch correction
+        with disable_logging():
+          sc.external.pp.harmony_integrate(adata_t1t2, batch_obs, basis='X_pca', adjusted_basis='X_pca_harmony', max_iter_harmony=max_iter_harmony, verbose=False)
+          sc.pp.neighbors(adata_t1t2, n_neighbors=n_neighbors, metric=distance_metric, use_rep='X_pca_harmony')
+          del adata_t1t2.uns['neighbors']['params']['use_rep']
+      else: # version without Harmony
+        sc.pp.neighbors(adata_t1t2, n_neighbors=n_neighbors, metric=distance_metric)
+      X_d_coo = adata_t1t2.obsp['distances'].tocoo()
+      neighbors_settings = adata_t1t2.uns['neighbors']
+
+      # Filter adata_ref self-edges in the non-anchor timepoints
+      if n != anchor_round: 
+
+        # Flag self-edges within adata_ref
+        row_indices, col_indices = X_d_coo.nonzero()
+        if method=='reverse':
+          row_flag = row_indices<len(adata_ref)
+          col_flag = col_indices<len(adata_ref)
+        elif method=='forward':
+          row_flag = row_indices>=len(adata_prj)
+          col_flag = col_indices>=len(adata_prj)
+        adata_ref_self_edge = row_flag & col_flag
+
+        # Apply self-edge filter
+        X_d_coo.data = X_d_coo.data[~adata_ref_self_edge]
+        X_d_coo.col = X_d_coo.col[~adata_ref_self_edge]
+        X_d_coo.row = X_d_coo.row[~adata_ref_self_edge]
+
+      # Concatenate row, column, data for this stitch round
+      X_d_stitch_rows = np.concatenate((X_d_stitch_rows, X_d_coo.row + base_counter))
+      X_d_stitch_cols = np.concatenate((X_d_stitch_cols, X_d_coo.col + base_counter))
+      X_d_stitch_data = np.concatenate((X_d_stitch_data, X_d_coo.data))
+
+      # Increment base_counter by the # of cells in adata_t1
+      base_counter += len(adata_t1)
+
+      # Clean up objects from this round
+      del adata_t1
+      del adata_t2
+      del adata_t1t2
+      gc.collect()
+
+  # Assemble the full STITCH graph as a COO matrix and compute 'umap-style' connectivities
+  adata.obsp['distances'] = scipy.sparse.coo_matrix((X_d_stitch_data, (X_d_stitch_rows, X_d_stitch_cols)), shape=(len(adata), len(adata))).tocsr()
+  adata.obsp['connectivities'] = get_connectivities_from_dist_csr(adata.obsp['distances'], n_neighbors)
+  adata.uns['neighbors'] = neighbors_settings  # update graph neighbor settings
+
+  # Update STITCH results
+  adata.uns['stitch'].update({'n_neighbors': n_neighbors,'distance_metric': distance_metric, 'stitch_method': method
+                              'use_harmony': use_harmony, 'max_iter_harmony': max_iter_harmony})
+  
+  return adata
+
+
+
+
 
 
 
