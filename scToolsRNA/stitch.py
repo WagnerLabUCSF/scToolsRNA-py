@@ -454,7 +454,7 @@ def stitch_get_graph(adata, timepoint_obs, batch_obs=None, n_neighbors=15, dista
   adata.uns['neighbors'] = neighbors_settings  # update graph neighbor settings
 
   # Update STITCH results
-  adata.uns['stitch'].update({'n_neighbors': n_neighbors,'distance_metric': distance_metric, 'stitch_method': method
+  adata.uns['stitch'].update({'n_neighbors': n_neighbors,'distance_metric': distance_metric, 'stitch_method': method,
                               'use_harmony': use_harmony, 'max_iter_harmony': max_iter_harmony})
   
   return adata
