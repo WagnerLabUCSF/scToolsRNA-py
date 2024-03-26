@@ -371,8 +371,8 @@ def stitch_get_graph(adata, timepoint_obs, batch_obs=None, n_neighbors=15, dista
       if verbose: print('Stitching Timepoints:', timepoint_list[n], arrow_str, timepoint_list[n+1])
 
       # Specify the reference and projection adatas for this round
-      adata_t1 = adata_list[n]#.copy()
-      adata_t2 = adata_list[n+1]#.copy()
+      adata_t1 = adata_list[n].copy()
+      adata_t2 = adata_list[n+1].copy()
       if method=='forward':
         adata_ref = adata_t2
         adata_prj = adata_t1
@@ -431,8 +431,8 @@ def stitch_get_graph(adata, timepoint_obs, batch_obs=None, n_neighbors=15, dista
       base_counter += len(adata_t1)
 
       # Cleanup objects from this round
-      #del adata_t1.X
-      #del adata_t2.X
+      del adata_t1.X
+      del adata_t2.X
       del adata_t1t2
       gc.collect()
 
