@@ -335,22 +335,19 @@ def stitch_get_dims_df(adata):
     return stitch_dims_df
 
 
-def stitch_get_graph(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric='correlation', method='forward', use_harmony=True, max_iter_harmony=20, verbose=True):
+def stitch_get_graph(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric='correlation', method='reverse', use_harmony=True, max_iter_harmony=20, verbose=True):
 
   # Determine the # of timepoints in adata
   timepoint_list = adata.uns['stitch']['timepoints']
   n_timepoints = adata.uns['stitch']['nTimepoints']
   n_stitch_rounds = n_timepoints - 1
 
-  # Sort the cells in adata by timepoint
-  time_sort_index = adata.obs[timepoint_obs].sort_values(inplace=False).index
-  adata = adata[time_sort_index,:].copy()
+  # Sort the cells in adata by timepoint (we have now moved this step upstream to the prev fxn)
+  #time_sort_index = adata.obs[timepoint_obs].sort_values(inplace=False).index
+  #adata = adata[time_sort_index,:].copy()
 
   # Get the previously built list of individual timepoint adatas
   adata_list = adata.uns['stitch']['adatas']
-  #adata_list = []
-  #for tp in timepoint_list:
-  #  adata_list.append(adata[adata.obs[timepoint_obs]==tp])
 
   # Set directionality of time projections
   if method=='forward':
@@ -374,8 +371,8 @@ def stitch_get_graph(adata, timepoint_obs, batch_obs=None, n_neighbors=15, dista
       if verbose: print('Stitching Timepoints:', timepoint_list[n], arrow_str, timepoint_list[n+1])
 
       # Specify the reference and projection adatas for this round
-      adata_t1 = adata_list[n].copy()
-      adata_t2 = adata_list[n+1].copy()
+      adata_t1 = adata_list[n]#.copy()
+      adata_t2 = adata_list[n+1]#.copy()
       if method=='forward':
         adata_ref = adata_t2
         adata_prj = adata_t1
@@ -434,8 +431,8 @@ def stitch_get_graph(adata, timepoint_obs, batch_obs=None, n_neighbors=15, dista
       base_counter += len(adata_t1)
 
       # Cleanup objects from this round
-      del adata_t1
-      del adata_t2
+      #del adata_t1.X
+      #del adata_t2.X
       del adata_t1t2
       gc.collect()
 
