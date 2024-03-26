@@ -365,12 +365,6 @@ def stitch_get_graph(adata, timepoint_obs, batch_obs=None, n_neighbors=15, dista
   X_d_stitch_rows = []
   X_d_stitch_cols = []
   X_d_stitch_data = []
-  stitch_nHVgenes = []
-  stitch_HVgene_flags = []
-  stitch_nSigPCs = []
-  stitch_nBatches = []
-  coo_shape = (len(adata), len(adata))
-  X_d_stitch_combined = scipy.sparse.coo_matrix(coo_shape)
 
   # Get neighbor graph for each stitch_round (each timepoint pair)
   with warnings.catch_warnings():
@@ -395,11 +389,8 @@ def stitch_get_graph(adata, timepoint_obs, batch_obs=None, n_neighbors=15, dista
       pp_raw2norm(adata_t1, include_raw_layers=False)
       pp_raw2norm(adata_t2, include_raw_layers=False)
 
-      # Get a pca embedding for adata_ref (this should already have been done)
-      #sc.pp.pca(adata_ref, n_comps=adata_ref.uns['n_sig_PCs'], zero_center=True)
-      sc.pp.neighbors(adata_ref, n_neighbors=n_neighbors, n_pcs=adata_ref.uns['n_sig_PCs'], metric=distance_metric, use_rep='X_pca')
-
       # Embed adata_prj into the pca subspace defined by adata_ref
+      sc.pp.neighbors(adata_ref, n_neighbors=n_neighbors, n_pcs=adata_ref.uns['n_sig_PCs'], metric=distance_metric, use_rep='X_pca')
       sc.tl.ingest(adata_prj, adata_ref, embedding_method='pca')
 
       # Concatenate the pca projections for both timepoints in chronological order
@@ -434,7 +425,7 @@ def stitch_get_graph(adata, timepoint_obs, batch_obs=None, n_neighbors=15, dista
         X_d_coo.col = X_d_coo.col[~adata_ref_self_edge]
         X_d_coo.row = X_d_coo.row[~adata_ref_self_edge]
 
-      # Concatenate row, column, data for this stitch round
+      # Concatenate row, column, data from this round
       X_d_stitch_rows = np.concatenate((X_d_stitch_rows, X_d_coo.row + base_counter))
       X_d_stitch_cols = np.concatenate((X_d_stitch_cols, X_d_coo.col + base_counter))
       X_d_stitch_data = np.concatenate((X_d_stitch_data, X_d_coo.data))
@@ -442,16 +433,16 @@ def stitch_get_graph(adata, timepoint_obs, batch_obs=None, n_neighbors=15, dista
       # Increment base_counter by the # of cells in adata_t1
       base_counter += len(adata_t1)
 
-      # Clean up objects from this round
+      # Cleanup objects from this round
       del adata_t1
       del adata_t2
       del adata_t1t2
       gc.collect()
 
   # Assemble the full STITCH graph as a COO matrix and compute 'umap-style' connectivities
+  adata.uns['neighbors'] = neighbors_settings  # save the neighbor settings used by STITCH
   adata.obsp['distances'] = scipy.sparse.coo_matrix((X_d_stitch_data, (X_d_stitch_rows, X_d_stitch_cols)), shape=(len(adata), len(adata))).tocsr()
   adata.obsp['connectivities'] = get_connectivities_from_dist_csr(adata.obsp['distances'], n_neighbors)
-  adata.uns['neighbors'] = neighbors_settings  # update graph neighbor settings
 
   # Update STITCH results
   adata.uns['stitch'].update({'n_neighbors': n_neighbors,'distance_metric': distance_metric, 'stitch_method': method,
