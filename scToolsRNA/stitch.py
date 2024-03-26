@@ -397,7 +397,7 @@ def stitch_get_graph(adata, timepoint_obs, batch_obs=None, n_neighbors=15, dista
 
       # Get a pca embedding for adata_ref (this should already have been done)
       #sc.pp.pca(adata_ref, n_comps=adata_ref.uns['n_sig_PCs'], zero_center=True)
-      #sc.pp.neighbors(adata_ref, n_neighbors=n_neighbors, n_pcs=adata_ref.uns['n_sig_PCs'], metric=distance_metric, use_rep='X_pca')
+      sc.pp.neighbors(adata_ref, n_neighbors=n_neighbors, n_pcs=adata_ref.uns['n_sig_PCs'], metric=distance_metric, use_rep='X_pca')
 
       # Embed adata_prj into the pca subspace defined by adata_ref
       sc.tl.ingest(adata_prj, adata_ref, embedding_method='pca')
@@ -409,10 +409,10 @@ def stitch_get_graph(adata, timepoint_obs, batch_obs=None, n_neighbors=15, dista
       if use_harmony: # include Harmony batch correction
         with disable_logging():
           sc.external.pp.harmony_integrate(adata_t1t2, batch_obs, basis='X_pca', adjusted_basis='X_pca_harmony', max_iter_harmony=max_iter_harmony, verbose=False)
-          sc.pp.neighbors(adata_t1t2, n_neighbors=n_neighbors, metric=distance_metric, use_rep='X_pca_harmony')
+          sc.pp.neighbors(adata_t1t2, n_neighbors=n_neighbors, n_pcs=adata_ref.uns['n_sig_PCs'], metric=distance_metric, use_rep='X_pca_harmony')
           del adata_t1t2.uns['neighbors']['params']['use_rep']
       else: # version without Harmony
-        sc.pp.neighbors(adata_t1t2, n_neighbors=n_neighbors, metric=distance_metric)
+        sc.pp.neighbors(adata_t1t2, n_neighbors=n_neighbors, n_pcs=adata_ref.uns['n_sig_PCs'], metric=distance_metric, use_rep='X_pca')
       X_d_coo = adata_t1t2.obsp['distances'].tocoo()
       neighbors_settings = adata_t1t2.uns['neighbors']
 
