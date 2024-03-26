@@ -250,8 +250,7 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='
   
   #
   # Identify top variable genes and PC dimensions for a series of timepoints
-  # This function will update adata with adata.uns['stitch_dims'], a dictionary that contains the
-  # results of the dimensionality tests.  
+  # This function will update adata with adata.uns['stitch']
   #
    
   # Determine the # of timepoints in adata
@@ -295,8 +294,9 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='
       nPCs_test_use = np.min([300, np.sum(adata_tmp.var.highly_variable)-1]) # in case nHVgenes is < nPCs
       get_significant_pcs(adata_tmp, n_iter=1, nPCs_test = nPCs_test_use, show_plots=False, verbose=False)
       sc.pp.pca(adata_tmp, n_comps=nPCs_test_use, zero_center=True)
-      sc.external.pp.harmony_integrate(adata_tmp, batch_obs, basis='X_pca', adjusted_basis='X_pca_harmony', max_iter_harmony=20, verbose=False)
-
+      if batch_obs is not None:
+          with disable_logging():
+              sc.external.pp.harmony_integrate(adata_tmp, batch_obs, basis='X_pca', adjusted_basis='X_pca_harmony', max_iter_harmony=20, verbose=False)
       
       # Organize results
       this_round_nHVgenes = np.sum(np.sum(adata_tmp.var['highly_variable']))
@@ -304,7 +304,6 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='
       stitch_nHVgenes.append(this_round_nHVgenes)
       stitch_nSigPCs.append(this_round_nSigPCs)
       
-
       # Delete temp objects
       del adata_tmp.X
       del adata_tmp.layers
@@ -327,9 +326,6 @@ def stitch_get_dims_df(adata):
                         index=adata.uns['stitch']['timepoints'])
     
     return stitch_dims_df
-
-
-
 
 
 
