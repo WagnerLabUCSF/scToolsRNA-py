@@ -140,7 +140,7 @@ def plot_stitch_hvgene_overlaps(adata, jaccard=True, cmap='jet', zmax=None):
     fig.show()
 
 
-def plot_stitch_pcgene_overlaps(adata, jaccard=True, cmap='jet', n_genes_per_pc=200, zmax=None):
+def plot_stitch_pcgene_overlaps(adata, jaccard=True, cmap='jet', n_genes_per_pc=200, n_pcs=300, zmax=None):
 
     labels = adata.uns['stitch']['timepoints'].astype('int').astype('str')
 
@@ -152,7 +152,7 @@ def plot_stitch_pcgene_overlaps(adata, jaccard=True, cmap='jet', n_genes_per_pc=
     pvgenes_list = []
     for pc_loadings in pc_loadings_list:
         pvgenes_this_tp = []
-        for pc in range(pc_loadings.shape[1]):        
+        for pc in range(np.min(n_pcs, pc_loadings.shape[1])): # Only consider up to n_pcs       
             top_gene_ind_this_pc = list(np.argsort(np.absolute((pc_loadings[:,pc])))[::-1][:n_genes_per_pc])
             pvgenes_this_tp.extend(adata.var_names[top_gene_ind_this_pc])
         pvgenes_list.append(list(set(pvgenes_this_tp)))
