@@ -133,7 +133,7 @@ def get_vscores_adata(adata, norm_counts_per_cell=1e6, min_vscore_pctl=85, min_c
         return stats
 
 
-def get_variable_genes(adata, batch_key=None, filter_method='all', n_genes=3000, norm_counts_per_cell=1e6, min_vscore_pctl=85, min_counts=3, min_cells=3, in_place=True):
+def get_variable_genes(adata, batch_key=None, filter_method='all', top_n_genes=3000, norm_counts_per_cell=1e6, min_vscore_pctl=85, min_counts=3, min_cells=3, in_place=True):
     
     '''
     Filter variable genes based on their representation within individual sample batches
@@ -165,9 +165,9 @@ def get_variable_genes(adata, batch_key=None, filter_method='all', n_genes=3000,
     elif filter_method == 'all':
         count_thresh = n_batches - 1 # only keep hvgenes identified in 100% of batches
     elif filter_method == 'top_n_genes': 
-        min_vscore_pctl = 0 # under this method we will return the top hv genes ranked by mean scaled vscore
+        min_vscore_pctl = 0 # return the top hv genes (# specified by 'top_n_genes') ranked by mean scaled vscore
     else:
-        print('Invalid variable gene filtering method provided')    
+        print('Invalid filtering method provided!')    
 
     # identify variable genes for each batch separately
     within_batch_hv_genes = []
@@ -186,11 +186,11 @@ def get_variable_genes(adata, batch_key=None, filter_method='all', n_genes=3000,
     within_batch_hv_genes = [g for gene in within_batch_hv_genes for g in gene]
     within_batch_hv_genes, hv_batch_count = np.unique(within_batch_hv_genes, return_counts=True)
     
-    # perform hv_gene filtering based on batch recurrence
-    if filter_method is not 'top_n_genes':
-        hv_genes = within_batch_hv_genes[hv_batch_count > count_thresh]
+    # perform hv_gene filtering
+    if filter_method is 'top_n_genes':
+        hv_genes = adata.var['vscore'].sort_values(ascending=False)[0:top_n_genes].index
     else:
-        hv_genes = adata.var['vscore'].sort_values(ascending=False)[0:n_genes].index
+        hv_genes = within_batch_hv_genes[hv_batch_count > count_thresh]
         
     # update adata
     adata.var['highly_variable'] = False

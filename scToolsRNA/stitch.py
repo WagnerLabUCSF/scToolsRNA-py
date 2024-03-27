@@ -335,16 +335,12 @@ def stitch_get_dims_df(adata):
     return stitch_dims_df
 
 
-def stitch_get_graph(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric='correlation', method='reverse', use_harmony=True, max_iter_harmony=20, verbose=True):
+def stitch_get_graph(adata, timepoint_obs, use_rep='X_pca', batch_obs=None, n_neighbors=15, distance_metric='correlation', method='reverse', use_harmony=False, max_iter_harmony=20, verbose=True):
 
   # Determine the # of timepoints in adata
   timepoint_list = adata.uns['stitch']['timepoints']
   n_timepoints = adata.uns['stitch']['nTimepoints']
   n_stitch_rounds = n_timepoints - 1
-
-  # Sort the cells in adata by timepoint (we have now moved this step upstream to the prev fxn)
-  #time_sort_index = adata.obs[timepoint_obs].sort_values(inplace=False).index
-  #adata = adata[time_sort_index,:].copy()
 
   # Get the previously built list of individual timepoint adatas
   adata_list = adata.uns['stitch']['adatas']
@@ -379,12 +375,6 @@ def stitch_get_graph(adata, timepoint_obs, batch_obs=None, n_neighbors=15, dista
       elif method=='reverse':
         adata_ref = adata_t1
         adata_prj = adata_t2
-
-      # Normalize the two adata objects separately from raw counts
-      adata_t1.X = adata[adata_t1.obs_names].X.copy()
-      adata_t2.X = adata[adata_t2.obs_names].X.copy()
-      pp_raw2norm(adata_t1, include_raw_layers=False)
-      pp_raw2norm(adata_t2, include_raw_layers=False)
 
       # Embed adata_prj into the pca subspace defined by adata_ref
       sc.pp.neighbors(adata_ref, n_neighbors=n_neighbors, n_pcs=adata_ref.uns['n_sig_PCs'], metric=distance_metric, use_rep='X_pca')
@@ -431,9 +421,7 @@ def stitch_get_graph(adata, timepoint_obs, batch_obs=None, n_neighbors=15, dista
       base_counter += len(adata_t1)
 
       # Cleanup objects from this round
-      del adata_t1.X
-      del adata_t2.X
-      del adata_t1t2
+      del adata_t1, adata_t2, adata_t1t2
       gc.collect()
 
   # Assemble the full STITCH graph as a COO matrix and compute 'umap-style' connectivities
