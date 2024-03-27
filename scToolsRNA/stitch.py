@@ -246,7 +246,7 @@ def plot_stitch_dims(adata):
     plt.show()
 
 
-def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='majority', vscore_min_pctl=85, use_harmony=True, downsample_cells=False):
+def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='majority', vscore_min_pctl=85, vscore_top_n_genes=3000, use_harmony=True, downsample_cells=False):
   
   #
   # Identify top variable genes and PC embeddings for a series of basis timepoints in adata
@@ -295,7 +295,7 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='
       pp_raw2norm(adata_tmp, include_raw_layers=False)
 
       # Get the top highly variable genes and up to the first 300 PCs
-      get_variable_genes(adata_tmp, batch_key=batch_obs, filter_method=vscore_filter_method, min_vscore_pctl=vscore_min_pctl)
+      get_variable_genes(adata_tmp, batch_key=batch_obs, filter_method=vscore_filter_method, top_n_genes=vscore_top_n_genes, min_vscore_pctl=vscore_min_pctl)
       nPCs_test_use = np.min([300, np.sum(adata_tmp.var.highly_variable)-1]) # in case nHVgenes is < nPCs
       get_significant_pcs(adata_tmp, n_iter=1, nPCs_test = nPCs_test_use, show_plots=False, verbose=False)
       sc.pp.pca(adata_tmp, n_comps=nPCs_test_use, zero_center=True)
