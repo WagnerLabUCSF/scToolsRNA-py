@@ -292,9 +292,14 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='
         adata_tmp = sc.pp.subsample(adata_tmp, n_obs=min_cells_per_timepoint, copy=True)
     adata_list.append(adata_tmp)
 
-  # Initialize results dictionaries
-  stitch_nHVgenes = []
-  stitch_nSigPCs = []
+  # Initialize results containers
+  nHVgenes = []
+  nSigPCs = []
+  hvflags = []
+  obsnames = []
+  X_pca = []
+  X_pca_Harmony = []
+  PCs = []
   
   # Get dimensionality info for each timepoint
   with warnings.catch_warnings():
@@ -321,8 +326,13 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='
       # Organize results
       this_round_nHVgenes = np.sum(np.sum(adata_tmp.var['highly_variable']))
       this_round_nSigPCs = adata_tmp.uns['n_sig_PCs']
-      stitch_nHVgenes.append(this_round_nHVgenes)
-      stitch_nSigPCs.append(this_round_nSigPCs)
+      nHVgenes.append(this_round_nHVgenes)
+      nSigPCs.append(this_round_nSigPCs)
+      hvflags.append(adata_tmp.var.highly_variable)
+      obsnames.append(adata_tmp.obs_names)
+      PCs.append(adata_tmp.varm['PCs'])
+      X_pca.append(adata_tmp.obsm['X_pca'])
+      if batch_obs is not None and use_harmony: X_pca_Harmony.append(adata_tmp.obsm['X_pca_harmony'])
       
       # Clean up objects from this round
       del adata_tmp.X
@@ -331,26 +341,32 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='
       del adata_tmp
       gc.collect()
 
-
   # Save results to dictionary
   adata.uns['stitch'] = {'timepoint_obs': timepoint_obs, 'batch_obs': batch_obs, 
                          'vscore_filter_method': vscore_filter_method, 'vscore_min_pctl': vscore_min_pctl, 
-                         'timepoints': timepoint_list, 'nTimepoints': n_timepoints, 'nHVgenes': stitch_nHVgenes, 
-                         'nSigPCs': stitch_nSigPCs, 'adatas': adata_list, 'use_harmony': use_harmony, 
-                         'downsample_cells': downsample_cells}
- 
+                         'timepoints': timepoint_list, 'nTimepoints': n_timepoints, 'nHVgenes': nHVgenes, 
+                         'nSigPCs': nSigPCs, 'adatas': adata_list, 'use_harmony': use_harmony, 
+                         'downsample_cells': downsample_cells, 'hvflags': hvflags, 
+                         'obsnames': obsnames, 'X_pca': X_pca, 
+                         'X_pca_Harmony': X_pca_Harmony, 'PCs': PCs}
+
   return adata
 
 
-def stitch_get_graph(adata, timepoint_obs, use_rep='X_pca', batch_obs=None, n_neighbors=15, distance_metric='correlation', method='reverse', use_harmony=False, max_iter_harmony=20, verbose=True):
+def stitch_get_graph(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric='correlation', method='reverse', use_harmony=True, max_iter_harmony=20, verbose=True):
 
   # Determine the # of timepoints in adata
   timepoint_list = adata.uns['stitch']['timepoints']
   n_timepoints = adata.uns['stitch']['nTimepoints']
   n_stitch_rounds = n_timepoints - 1
 
-  # Get the previously built list of individual timepoint adatas
+  # Get the previously built embedding info from each timepoint
   adata_list = adata.uns['stitch']['adatas']
+  obsnames = adata.uns['stitch']['obsnames']
+  hvflags = adata.uns['stitch']['hvflags']
+  nSigPCs = adata.uns['stitch']['nSigPCs']
+  X_pca = adata.uns['stitch']['X_pca']
+  PCs = adata.uns['stitch']['PCs']
 
   # Set directionality of time projections
   if method=='forward':
@@ -360,7 +376,7 @@ def stitch_get_graph(adata, timepoint_obs, use_rep='X_pca', batch_obs=None, n_ne
     arrow_str = '<-'
     anchor_round = 0 # anchor = first round
 
-  # Initialize results lists
+  # Initialize graph data containers
   base_counter = 0
   X_d_stitch_rows = []
   X_d_stitch_cols = []
@@ -372,10 +388,25 @@ def stitch_get_graph(adata, timepoint_obs, use_rep='X_pca', batch_obs=None, n_ne
     for n in range(n_stitch_rounds):
       
       if verbose: print('Stitching Timepoints:', timepoint_list[n], arrow_str, timepoint_list[n+1])
+      
+      # Specify adata_t1 and adata_t2 for this round
+      adata_t1 = adata_list[obsnames[n],:].copy()
+      adata_t1.var.highly_variable = hvflags[n].copy()
+      adata_t1.uns['n_sig_PCs'] = nSigPCs[n]
+      adata_t1.obsm['X_pca'] = X_pca[n].copy()
+      adata_t1.varm['PCs'] = PCs[n].copy()
+      
+      adata_t2 = adata_list[obsnames[n+1],:].copy()
+      adata_t2.var.highly_variable = hvflags[n+1].copy()
+      adata_t2.uns['n_sig_PCs'] = nSigPCs[n+1]
+      adata_t2.obsm['X_pca'] = X_pca[n+1].copy()
+      adata_t2.varm['PCs'] = PCs[n+1].copy()
 
-      # Specify the reference and projection adatas for this round
-      adata_t1 = adata_list[n].copy()
-      adata_t2 = adata_list[n+1].copy()
+      # Normalize 
+      pp_raw2norm(adata_t1, include_raw_layers=False)
+      pp_raw2norm(adata_t2, include_raw_layers=False)
+
+      # Specify the reference and projection relationship
       if method=='forward':
         adata_ref = adata_t2
         adata_prj = adata_t1
@@ -487,9 +518,9 @@ def stitch_orig(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_m
   X_d_stitch_rows = []
   X_d_stitch_cols = []
   X_d_stitch_data = []
-  stitch_nHVgenes = []
+  nHVgenes = []
   stitch_HVgene_flags = []
-  stitch_nSigPCs = []
+  nSigPCs = []
   stitch_nBatches = []
   coo_shape = (len(adata), len(adata))
   X_d_stitch_combined = scipy.sparse.coo_matrix(coo_shape)
@@ -524,8 +555,8 @@ def stitch_orig(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_m
       if verbose: 
         print('nHVgenes:', this_round_nHVgenes)
         print('nSigPCs', this_round_nSigPCs)
-      stitch_nHVgenes.append(this_round_nHVgenes)
-      stitch_nSigPCs.append(this_round_nSigPCs)
+      nHVgenes.append(this_round_nHVgenes)
+      nSigPCs.append(this_round_nSigPCs)
       stitch_HVgene_flags.append(adata_ref.var['highly_variable'])
 
       # Get a pca embedding for adata_ref
@@ -600,7 +631,7 @@ def stitch_orig(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_m
                                   'vscore_min_pctl': vscore_min_pctl, 'vscore_filter_method': vscore_filter_method, 'method': method,
                                   'use_harmony': use_harmony, 'max_iter_harmony': max_iter_harmony}
   adata.uns['stitch_results'] = {'stitch_timepoints': timepoint_list, 'stitch_n_timepoints': n_timepoints, 'stitch_n_rounds': n_stitch_rounds,
-                                'stitch_nHVgenes': stitch_nHVgenes, 'stitch_HVgene_flags': stitch_HVgene_flags, 'stitch_nSigPCs': stitch_nSigPCs, 'stitch_nBatches': stitch_nBatches}
+                                'nHVgenes': nHVgenes, 'stitch_HVgene_flags': stitch_HVgene_flags, 'nSigPCs': nSigPCs, 'stitch_nBatches': stitch_nBatches}
                               
  
   return adata
@@ -634,12 +665,12 @@ def stitch_get_dims_orig(adata, timepoint_obs, batch_obs=None, vscore_filter_met
     adata_list.append(adata_tmp)
 
   # Initialize results lists
-  stitch_nHVgenes = []
+  nHVgenes = []
   stitch_HVgene_flags = []
   stitch_HVgene_vscores = []
   stitch_HVgene_batch_count = []
-  stitch_nSigPCs = []
-  stitch_PCs = []
+  nSigPCs = []
+  PCs = []
   stitch_PC_loadings = []
   
   # Get dimensionality info for each timepoint
@@ -664,11 +695,11 @@ def stitch_get_dims_orig(adata, timepoint_obs, batch_obs=None, vscore_filter_met
       # Organize results
       this_round_nHVgenes = np.sum(np.sum(adata_tmp.var['highly_variable']))
       this_round_nSigPCs = adata_tmp.uns['n_sig_PCs']
-      stitch_nHVgenes.append(this_round_nHVgenes)
+      nHVgenes.append(this_round_nHVgenes)
       stitch_HVgene_flags.append(adata_tmp.var['highly_variable'])
       stitch_HVgene_vscores.append(adata_tmp.var['vscore'])
-      stitch_nSigPCs.append(this_round_nSigPCs)
-      stitch_PCs.append(adata_tmp.obsm['X_pca'])
+      nSigPCs.append(this_round_nSigPCs)
+      PCs.append(adata_tmp.obsm['X_pca'])
       stitch_PC_loadings.append(adata_tmp.varm['PCs'])
 
       # Delete temp objects
@@ -679,10 +710,10 @@ def stitch_get_dims_orig(adata, timepoint_obs, batch_obs=None, vscore_filter_met
   # Save results to dictionary
   adata.uns['stitch_dims'] = {'timepoint_obs': timepoint_obs, 'batch_obs': batch_obs, 
                               'vscore_filter_method': vscore_filter_method, 'stitch_timepoints': timepoint_list, 
-                              'stitch_n_timepoints': n_timepoints, 'stitch_nHVgenes': stitch_nHVgenes, 
+                              'stitch_n_timepoints': n_timepoints, 'nHVgenes': nHVgenes, 
                               'stitch_HVgene_flags': stitch_HVgene_flags, 'stitch_HVgene_vscores': stitch_HVgene_vscores, 
-                              'stitch_PC_loadings': stitch_PC_loadings, 'stitch_nSigPCs': stitch_nSigPCs}
-                              #'stitch_X_pca': stitch_PCs
+                              'stitch_PC_loadings': stitch_PC_loadings, 'nSigPCs': nSigPCs}
+                              #'X_pca': PCs
  
   return adata
 
