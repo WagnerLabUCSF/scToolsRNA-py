@@ -392,7 +392,6 @@ def stitch_get_graph(adata, timepoint_obs, use_rep='X_pca', batch_obs=None, n_ne
       else: # version without Harmony
         sc.pp.neighbors(adata_t1t2, n_neighbors=n_neighbors, n_pcs=adata_ref.uns['n_sig_PCs'], metric=distance_metric, use_rep='X_pca')
       X_d_coo = adata_t1t2.obsp['distances'].tocoo()
-      neighbors_settings = adata_t1t2.uns['neighbors']
 
       # Filter adata_ref self-edges in the non-anchor timepoints
       if n != anchor_round: 
@@ -424,8 +423,18 @@ def stitch_get_graph(adata, timepoint_obs, use_rep='X_pca', batch_obs=None, n_ne
       del adata_t1, adata_t2, adata_t1t2
       gc.collect()
 
+  # Save neighbor graph settings for downstream steps
+  adata.obsm['X_stitch_dummy'] = np.zeros((adata.shape[0], 50)) # empty X for initializing umap later on
+  adata.uns['neighbors'] = {'connectivities_key': 
+                            'connectivities', 'distances_key': 'distances',
+                            'params': {'method': 'umap',
+                            'metric': distance_metric,
+                            'n_neighbors': n_neighbors,
+                            'n_pcs': 50,
+                            'random_state': 0,
+                            'use_rep': 'X_stitch_dummy'}}
+
   # Assemble the full STITCH graph as a COO matrix and compute 'umap-style' connectivities
-  adata.uns['neighbors'] = neighbors_settings  # save the neighbor settings used by STITCH
   adata.obsp['distances'] = scipy.sparse.coo_matrix((X_d_stitch_data, (X_d_stitch_rows, X_d_stitch_cols)), shape=(len(adata), len(adata))).tocsr()
   adata.obsp['connectivities'] = get_connectivities_from_dist_csr(adata.obsp['distances'], n_neighbors)
 
@@ -569,13 +578,23 @@ def stitch_orig(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_m
   # Compute connectivities from neighbor distances (umap-style)
   adata.obsp['connectivities'] = get_connectivities_from_dist_csr(adata.obsp['distances'], n_neighbors)
 
-  # Store run settings & params
-  adata.uns['neighbors'] = neighbors_settings
+  # Save neighbor graph settings for downstream steps
+  adata.obsm['X_stitch_dummy'] = np.zeros((adata.shape[0], 50)) # empty X for initializing umap later on
+  adata.uns['neighbors'] = {'connectivities_key': 
+                            'connectivities', 'distances_key': 'distances',
+                            'params': {'method': 'umap',
+                            'metric': distance_metric,
+                            'n_neighbors': n_neighbors,
+                            'n_pcs': 50,
+                            'random_state': 0,
+                            'use_rep': 'X_stitch_dummy'}}
+  
   adata.uns['stitch_settings'] = {'timepoint_obs': timepoint_obs, 'batch_obs': batch_obs, 'n_neighbors': n_neighbors,'distance_metric': distance_metric,
                                   'vscore_min_pctl': vscore_min_pctl, 'vscore_filter_method': vscore_filter_method, 'method': method,
                                   'use_harmony': use_harmony, 'max_iter_harmony': max_iter_harmony}
   adata.uns['stitch_results'] = {'stitch_timepoints': timepoint_list, 'stitch_n_timepoints': n_timepoints, 'stitch_n_rounds': n_stitch_rounds,
                                 'stitch_nHVgenes': stitch_nHVgenes, 'stitch_HVgene_flags': stitch_HVgene_flags, 'stitch_nSigPCs': stitch_nSigPCs, 'stitch_nBatches': stitch_nBatches}
+                              
  
   return adata
 
