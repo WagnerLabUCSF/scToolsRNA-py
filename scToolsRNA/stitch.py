@@ -261,7 +261,7 @@ def stitch_get_dims_df(adata):
 
 ### STITCH FXNS ###
 
-def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='majority', vscore_min_pctl=90, vscore_top_n_genes=3000, use_harmony=True, downsample_cells=False):
+def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='majority', vscore_min_pctl=85, vscore_top_n_genes=3000, use_harmony=True, downsample_cells=False):
   
   #
   # Identify top variable genes and PC embeddings for a series of basis timepoints in adata
@@ -285,20 +285,12 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='
   min_cells_per_timepoint = np.min(adata.obs[timepoint_obs].value_counts())
 
   # Generate a list of individual timepoint adatas
-  #adata_list = []
-  #for tp in timepoint_list:
-  #  adata_tmp = adata[adata.obs[timepoint_obs]==tp]
-  #  if downsample_cells:
-  #      adata_tmp = sc.pp.subsample(adata_tmp, n_obs=min_cells_per_timepoint, copy=True)
-  #  adata_list.append(adata_tmp)
-
-  # Dictionary version
-  adata_dict = ()
-  for n,tp in enumerate(timepoint_list):
+  adata_list = []
+  for tp in timepoint_list:
     adata_tmp = adata[adata.obs[timepoint_obs]==tp]
     if downsample_cells:
         adata_tmp = sc.pp.subsample(adata_tmp, n_obs=min_cells_per_timepoint, copy=True)
-    adata_dict[n] = adata_tmp
+    adata_list.append(adata_tmp)
 
   # Initialize results dictionaries
   stitch_nHVgenes = []
@@ -312,9 +304,8 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='
       print('Computing gene vscores and PC embeddings for:', timepoint_list[n])
 
       # Specify the adata for this timepoint
-      #adata_tmp = adata_list[n].copy()
-      adata_tmp = adata_dict[n].copy()
-
+      adata_tmp = adata_list[n].copy()
+      
       # Normalize 
       pp_raw2norm(adata_tmp, include_raw_layers=False)
 
@@ -336,8 +327,7 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='
       # Clean up objects from this round
       del adata_tmp.X
       del adata_tmp.layers
-      #adata_list[n] = adata_tmp.copy()
-      adata_dict[n] = adata_tmp.copy()
+      adata_list[n] = adata_tmp.copy()
       del adata_tmp
       gc.collect()
 
@@ -346,7 +336,7 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='
   adata.uns['stitch'] = {'timepoint_obs': timepoint_obs, 'batch_obs': batch_obs, 
                          'vscore_filter_method': vscore_filter_method, 'vscore_min_pctl': vscore_min_pctl, 
                          'timepoints': timepoint_list, 'nTimepoints': n_timepoints, 'nHVgenes': stitch_nHVgenes, 
-                         'nSigPCs': stitch_nSigPCs, 'adatas': adata_dict, 'use_harmony': use_harmony, 
+                         'nSigPCs': stitch_nSigPCs, 'adatas': adata_list, 'use_harmony': use_harmony, 
                          'downsample_cells': downsample_cells}
  
   return adata
@@ -468,7 +458,7 @@ def stitch_get_graph(adata, timepoint_obs, use_rep='X_pca', batch_obs=None, n_ne
 
 ### LEGACY FXNS - DON'T TOUCH!! ###
 
-def stitch_orig(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric='correlation', vscore_min_pctl=90, vscore_filter_method=None, method='forward', use_harmony=True, max_iter_harmony=20, verbose=True):
+def stitch_orig(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric='correlation', vscore_min_pctl=85, vscore_filter_method=None, method='forward', use_harmony=True, max_iter_harmony=20, verbose=True):
 
   # Determine the # of timepoints in adata
   timepoint_list = np.unique(adata.obs[timepoint_obs])
@@ -616,7 +606,7 @@ def stitch_orig(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_m
   return adata
 
 
-def stitch_get_dims_orig(adata, timepoint_obs, batch_obs=None, vscore_filter_method='majority', vscore_min_pctl=90, downsample_cells=True):
+def stitch_get_dims_orig(adata, timepoint_obs, batch_obs=None, vscore_filter_method='majority', vscore_min_pctl=85, downsample_cells=True):
   
   #
   # Identify top variable genes and PC dimensions for a series of timepoints
