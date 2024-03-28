@@ -261,7 +261,7 @@ def stitch_get_dims_df(adata):
 
 ### STITCH FXNS ###
 
-def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='majority', vscore_min_pctl=85, vscore_top_n_genes=3000, use_harmony=True, downsample_cells=False):
+def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='majority', vscore_min_pctl=90, vscore_top_n_genes=3000, use_harmony=True, downsample_cells=False):
   
   #
   # Identify top variable genes and PC embeddings for a series of basis timepoints in adata
@@ -293,7 +293,7 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='
   #  adata_list.append(adata_tmp)
 
   # Dictionary version
-  adata_dict = {}
+  adata_dict = ()
   for n,tp in enumerate(timepoint_list):
     adata_tmp = adata[adata.obs[timepoint_obs]==tp]
     if downsample_cells:
@@ -468,7 +468,7 @@ def stitch_get_graph(adata, timepoint_obs, use_rep='X_pca', batch_obs=None, n_ne
 
 ### LEGACY FXNS - DON'T TOUCH!! ###
 
-def stitch_orig(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric='correlation', vscore_min_pctl=85, vscore_filter_method=None, method='forward', use_harmony=True, max_iter_harmony=20, verbose=True):
+def stitch_orig(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric='correlation', vscore_min_pctl=90, vscore_filter_method=None, method='forward', use_harmony=True, max_iter_harmony=20, verbose=True):
 
   # Determine the # of timepoints in adata
   timepoint_list = np.unique(adata.obs[timepoint_obs])
@@ -616,7 +616,7 @@ def stitch_orig(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_m
   return adata
 
 
-def stitch_get_dims_orig(adata, timepoint_obs, batch_obs=None, vscore_filter_method='majority', vscore_min_pctl=85, downsample_cells=True):
+def stitch_get_dims_orig(adata, timepoint_obs, batch_obs=None, vscore_filter_method='majority', vscore_min_pctl=90, downsample_cells=True):
   
   #
   # Identify top variable genes and PC dimensions for a series of timepoints
