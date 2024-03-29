@@ -492,7 +492,39 @@ def get_sig_pcs_fast(adata, n_iter=3, nPCs_test=300, threshold_method='95', show
     n_sig_PCs = np.count_nonzero(eig > eig_thresh)
 
     if show_plots:
-        # Plotting code here...
+        
+        # Plot eigenvalue histograms
+        bins = np.logspace(0, np.log10(np.max(eig)+10), 50)
+        sns.histplot(eig_rand.flatten(), bins=bins, kde=False, alpha=1, label='random', stat='probability', color='orange')#, weights=np.zeros_like(data_rand) + 1. / len(data_rand))
+        sns.histplot(eig, bins=bins, kde=False, alpha=0.5, label='data', stat='probability')#, weights=np.zeros_like(data) + 1. / len(data))
+        plt.legend(loc='upper right')
+        plt.axvline(x = eig_thresh, color = 'k', linestyle = '--', alpha=0.5, linewidth=1)
+        plt.xscale('log')
+        #plt.yscale('log')
+        plt.xlabel('Eigenvalue')
+        plt.ylabel('Frequency')
+        plt.show()
+
+        # Plot scree (eigenvalues for each PC dimension)
+        plt.plot([], label='data', color='#1f77b4', alpha=1)
+        plt.plot([], label='random', color='#ff7f0e', alpha=1)
+        plt.plot(eig, alpha=1, color='#1f77b4')
+        for j in range(n_iter):
+          plt.plot(eig_rand[j], alpha=1/n_iter, color='#ff7f0e')   
+        plt.legend(loc='upper right')
+        plt.axhline(y = eig_thresh, color = 'k', linestyle = '--', alpha=0.5, linewidth=1)
+        plt.yscale('log')
+        plt.xlabel('PC #')
+        plt.ylabel('Eigenvalue')
+        plt.show()
+
+        # Plot nPCs above rand histograms
+        sns.set_context(rc = {'patch.linewidth': 0.0})
+        sns.histplot(n_sig_PCs_trials, kde=True, stat='probability', color='#1f77b4') 
+        plt.xlabel('# PCs Above Random')
+        plt.ylabel('Frequency')
+        plt.xlim([0, nPCs_test])
+        plt.show()
 
     # Print summary stats to screen
     if verbose:
