@@ -304,7 +304,8 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='
       # Specify the adata for this timepoint
       adata_tmp = adata_list[n].copy()
       
-      # Normalize 
+      # Normalize and scale data
+      # We will need 2 data layers: (1) tpm_no_log for finding variable genes, and (2) zscored/scaled for pca
       pp_raw2norm(adata_tmp, include_raw_layers=False)
       del adata_tmp.layers['tpm']
 
@@ -371,7 +372,7 @@ def stitch_get_graph(adata, timepoint_obs, batch_obs=None, n_neighbors=15, dista
       
       if verbose: print('Stitching Timepoints:', timepoint_list[n], arrow_str, timepoint_list[n+1])
       
-      # Specify adata_t1 and adata_t2 for this round
+      # Load previously processed adata_t1 and adata_t2 for this round
       adata_t1 = adata_list[n].copy()
       adata_t2 = adata_list[n+1].copy()
       
@@ -429,16 +430,11 @@ def stitch_get_graph(adata, timepoint_obs, batch_obs=None, n_neighbors=15, dista
       del adata_t1, adata_t2, adata_t1t2
       gc.collect()
 
-  # Save neighbor graph settings for downstream steps
+  # Specify neighbor graph settings for downstream steps
   adata.obsm['X_stitch_dummy'] = np.zeros((adata.shape[0], 50)) # empty X for initializing umap later on
-  adata.uns['neighbors'] = {'connectivities_key': 
-                            'connectivities', 'distances_key': 'distances',
-                            'params': {'method': 'umap',
-                            'metric': distance_metric,
-                            'n_neighbors': n_neighbors,
-                            'n_pcs': 50,
-                            'random_state': 0,
-                            'use_rep': 'X_stitch_dummy'}}
+  adata.uns['neighbors'] = {'connectivities_key': 'connectivities', 'distances_key': 'distances',
+                            'params': {'method': 'umap', 'metric': distance_metric, 'n_neighbors': n_neighbors,
+                                       'n_pcs': 50, 'random_state': 0, 'use_rep': 'X_stitch_dummy'}}
 
   # Assemble the full STITCH graph as a COO matrix and compute 'umap-style' connectivities
   adata.obsp['distances'] = scipy.sparse.coo_matrix((X_d_stitch_data, (X_d_stitch_rows, X_d_stitch_cols)), shape=(len(adata), len(adata))).tocsr()
