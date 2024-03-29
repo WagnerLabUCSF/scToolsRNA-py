@@ -369,8 +369,8 @@ def stitch_get_graph(adata, timepoint_obs, batch_obs=None, n_neighbors=15, dista
       if verbose: print('Stitching Timepoints:', timepoint_list[n], arrow_str, timepoint_list[n+1])
       
       # Load previously processed adata_t1 and adata_t2 for this round
-      adata_t1 = adata_list[n].copy()
-      adata_t2 = adata_list[n+1].copy()
+      adata_t1 = adata_list[n] #.copy()
+      adata_t2 = adata_list[n+1] #.copy()
       
       # Specify the reference and projection relationship
       if method=='forward':
@@ -423,8 +423,9 @@ def stitch_get_graph(adata, timepoint_obs, batch_obs=None, n_neighbors=15, dista
       base_counter += len(adata_t1)
 
       # Cleanup objects from this round
-      del adata_t1, adata_t2, adata_t1t2
-      gc.collect()
+      del adata_t1t2
+      #del adata_t1, adata_t2, adata_t1t2
+      #gc.collect()
 
   # Specify neighbor graph settings for downstream steps
   adata.obsm['X_stitch_dummy'] = np.zeros((adata.shape[0], 50)) # empty X for initializing umap later on
