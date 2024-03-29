@@ -361,9 +361,9 @@ def stitch_get_graph(adata, timepoint_obs, batch_obs=None, n_neighbors=15, dista
 
   # Get the previously built embedding info from each timepoint
   adata_list = adata.uns['stitch']['adatas']
-  obsnames = adata.uns['stitch']['obsnames']
+  #obsnames = adata.uns['stitch']['obsnames']
   #hvflags = adata.uns['stitch']['hvflags']
-  #nSigPCs = adata.uns['stitch']['nSigPCs']
+  nSigPCs = adata.uns['stitch']['nSigPCs']
   #X_pca = adata.uns['stitch']['X_pca']
   #PCs = adata.uns['stitch']['PCs']
 
