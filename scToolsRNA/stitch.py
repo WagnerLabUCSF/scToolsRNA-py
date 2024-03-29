@@ -391,7 +391,7 @@ def stitch_get_graph(adata, timepoint_obs, batch_obs=None, n_neighbors=15, dista
       
       # Specify adata_t1 and adata_t2 for this round
       adata_t1 = adata[obsnames[n],:].copy()
-      adata_t1.var.highly_variable = hvflags[n].copy()
+      adata_t1.var['highly_variable'] = hvflags[n].copy()
       adata_t1.uns['n_sig_PCs'] = nSigPCs[n]
       adata_t1.obsm['X_pca'] = X_pca[n].copy()
       adata_t1.varm['PCs'] = PCs[n].copy()
@@ -399,7 +399,7 @@ def stitch_get_graph(adata, timepoint_obs, batch_obs=None, n_neighbors=15, dista
       adata_t1.uns['pca']['params'] = {'zero_center': True, 'use_highly_variable': True}
       
       adata_t2 = adata[obsnames[n+1],:].copy()
-      adata_t2.var.highly_variable = hvflags[n+1].copy()
+      adata_t2.var['highly_variable'] = hvflags[n+1].copy()
       adata_t2.uns['n_sig_PCs'] = nSigPCs[n+1]
       adata_t2.obsm['X_pca'] = X_pca[n+1].copy()
       adata_t2.varm['PCs'] = PCs[n+1].copy()
