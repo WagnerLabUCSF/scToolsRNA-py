@@ -489,10 +489,10 @@ def stitch_get_graph(adata, timepoint_obs, batch_obs=None, n_neighbors=15, dista
 
 
 
-
-
+###################################
 ### LEGACY FXNS - DON'T TOUCH!! ###
-
+###################################
+    
 def stitch_orig(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric='correlation', vscore_min_pctl=85, vscore_filter_method=None, method='forward', use_harmony=True, max_iter_harmony=20, verbose=True):
 
   # Determine the # of timepoints in adata
@@ -720,5 +720,10 @@ def stitch_get_dims_orig(adata, timepoint_obs, batch_obs=None, vscore_filter_met
                               #'X_pca': PCs
  
   return adata
+
+
+
+
+
 
 
