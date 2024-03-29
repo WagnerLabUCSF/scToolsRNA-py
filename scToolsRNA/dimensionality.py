@@ -1,5 +1,6 @@
 
 import sys
+import gc
 import warnings
 import numpy as np
 import scipy
@@ -363,6 +364,10 @@ def get_sig_pcs(adata, n_iter = 3, nPCs_test = 300, threshold_method='95', show_
         eig_rand_max.append(np.max(eig_rand_next))
         n_sig_PCs_trials.append(np.count_nonzero(eig>np.max(eig_rand_next)))
 
+        del adata_tmp_rand
+        gc.collect()
+
+
     # Set eigenvalue thresholding method
     if threshold_method == '95':
         method_string = 'Counting the # of PCs with eigenvalues above random in >95% of trials'
@@ -422,9 +427,87 @@ def get_sig_pcs(adata, n_iter = 3, nPCs_test = 300, threshold_method='95', show_
     if in_place:
         adata.uns['n_sig_PCs'] = n_sig_PCs
         adata.uns['n_sig_PCs_trials'] = n_sig_PCs_trials
+        gc.collect()
         return None
     
     else:
+        gc.collect()
+        return n_sig_PCs, n_sig_PCs_trials
+
+
+def get_sig_pcs_fast(adata, n_iter=3, nPCs_test=300, threshold_method='95', show_plots=True, zero_center=True, verbose=True, in_place=True):
+    # Subset adata to highly variable genes x cells (counts matrix only)
+    adata_tmp = sc.AnnData(adata[:, adata.var.highly_variable].X)
+
+    # Determine if the input matrix is sparse
+    sparse = scipy.sparse.issparse(adata_tmp.X)
+
+    # Get eigenvalues from PCA on data matrix
+    if verbose:
+        print('Performing PCA on data')
+    sc.pp.pca(adata_tmp, n_comps=nPCs_test, zero_center=zero_center)
+    eig = adata_tmp.uns['pca']['variance']
+
+    # Get eigenvalues from PCA on randomly permuted data matrices
+    if verbose:
+        print('Performing PCA on randomized data')
+    eig_rand = np.zeros(shape=(n_iter, nPCs_test))
+    eig_rand_max = []
+    n_sig_PCs_trials = []
+    for j in range(n_iter):
+        if verbose and n_iter > 1:
+            sys.stdout.write('\rIteration %i / %i' % (j + 1, n_iter))
+            sys.stdout.flush()
+
+        adata_tmp_rand = adata_tmp.copy()
+        mat = adata_tmp_rand.X.A if sparse else adata_tmp_rand.X.copy()
+
+        # Randomly permute each row of the counts matrix
+        np.random.seed(seed=j)
+        mat_permuted = mat[np.random.permutation(mat.shape[0])]
+
+        adata_tmp_rand.X = scipy.sparse.csr_matrix(mat_permuted) if sparse else mat_permuted
+
+        sc.pp.pca(adata_tmp_rand, n_comps=nPCs_test, zero_center=zero_center)
+        eig_rand_next = adata_tmp_rand.uns['pca']['variance']
+        eig_rand[j, :] = eig_rand_next
+        eig_rand_max.append(np.max(eig_rand_next))
+        n_sig_PCs_trials.append(np.count_nonzero(eig > np.max(eig_rand_next)))
+
+        del adata_tmp_rand
+        gc.collect()
+
+    # Set eigenvalue thresholding method
+    if threshold_method == '95':
+        method_string = 'Counting the # of PCs with eigenvalues above random in >95% of trials'
+        eig_thresh = np.percentile(eig_rand_max, 95)
+    elif threshold_method == 'median':
+        method_string = 'Counting the # of PCs with eigenvalues above random in >50% of trials'
+        eig_thresh = np.percentile(eig_rand_max, 50)
+    elif threshold_method == 'all':
+        method_string = 'Counting the # of PCs with eigenvalues above random across all trials'
+        eig_thresh = np.percentile(eig_rand_max, 100)
+
+    # Determine # of PC dimensions with eigenvalues above threshold
+    n_sig_PCs = np.count_nonzero(eig > eig_thresh)
+
+    if show_plots:
+        # Plotting code here...
+
+    # Print summary stats to screen
+    if verbose:
+        print()
+        print(method_string)
+        print('Eigenvalue Threshold =', np.round(eig_thresh, 2))
+        print('# Significant PCs =', n_sig_PCs)
+
+    if in_place:
+        adata.uns['n_sig_PCs'] = n_sig_PCs
+        adata.uns['n_sig_PCs_trials'] = n_sig_PCs_trials
+        gc.collect()
+        return None
+    else:
+        gc.collect()
         return n_sig_PCs, n_sig_PCs_trials
 
 
