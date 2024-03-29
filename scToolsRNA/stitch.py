@@ -338,7 +338,7 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='
   return adata
 
 
-def stitch_get_graph(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric='correlation', method='reverse', use_harmony=True, max_iter_harmony=20, verbose=True):
+def stitch_get_graph(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric='correlation', method='reverse', self_edge_filter=True, use_harmony=True, max_iter_harmony=20, verbose=True):
 
   # Determine the # of timepoints in adata
   timepoint_list = adata.uns['stitch']['timepoints']
@@ -390,17 +390,16 @@ def stitch_get_graph(adata, timepoint_obs, batch_obs=None, n_neighbors=15, dista
       adata_t1t2 = adata_t1.concatenate(adata_t2, batch_categories=['t1', 't2'])
 
       # Generate a t1-t2 neighbor graph (a sparse COO matrix) in the joint pca space
-      if use_harmony: # include Harmony batch correction
+      if batch_obs is not None and use_harmony:  # include Harmony batch correction
         with disable_logging():
           sc.external.pp.harmony_integrate(adata_t1t2, batch_obs, basis='X_pca', adjusted_basis='X_pca_harmony', max_iter_harmony=max_iter_harmony, verbose=False)
           sc.pp.neighbors(adata_t1t2, n_neighbors=n_neighbors, n_pcs=adata_ref.uns['n_sig_PCs'], metric=distance_metric, use_rep='X_pca_harmony')
-          del adata_t1t2.uns['neighbors']['params']['use_rep']
       else: # version without Harmony
         sc.pp.neighbors(adata_t1t2, n_neighbors=n_neighbors, n_pcs=adata_ref.uns['n_sig_PCs'], metric=distance_metric, use_rep='X_pca')
       X_d_coo = adata_t1t2.obsp['distances'].tocoo()
 
       # Filter adata_ref self-edges in the non-anchor timepoints
-      if n != anchor_round: 
+      if self_edge_filter and n != anchor_round: 
 
         # Flag self-edges within adata_ref
         row_indices, col_indices = X_d_coo.nonzero()
@@ -446,7 +445,7 @@ def stitch_get_graph(adata, timepoint_obs, batch_obs=None, n_neighbors=15, dista
 
   # Update STITCH results
   adata.uns['stitch'].update({'n_neighbors': n_neighbors,'distance_metric': distance_metric, 'stitch_method': method,
-                              'use_harmony': use_harmony, 'max_iter_harmony': max_iter_harmony})
+                              'use_harmony': use_harmony, 'max_iter_harmony': max_iter_harmony, 'self_edge_filter': self_edge_filter})
   
   return adata
 
