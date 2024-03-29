@@ -91,7 +91,7 @@ def get_vscores_adata(adata, norm_counts_per_cell=1e6, min_vscore_pctl=85, min_c
 
     ''' 
     Identifies highly variable genes
-    Requires a layer of adata that has been processed by total count normalization (e.g. tpm_nolog)
+    Requires a layer of adata that has been processed by total count normalization (we use tpm_nolog)
     '''
 
     E = adata.layers['tpm_nolog']
