@@ -261,7 +261,7 @@ def stitch_get_dims_df(adata):
 
 ### STITCH FXNS ###
 
-def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='majority', vscore_min_pctl=85, vscore_top_n_genes=3000, use_harmony=True, downsample_cells=False):
+def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='majority', vscore_min_pctl=90, vscore_top_n_genes=3000, use_harmony=True, downsample_cells=False):
   
   #
   # Identify top variable genes and PC embeddings for a series of basis timepoints in adata
