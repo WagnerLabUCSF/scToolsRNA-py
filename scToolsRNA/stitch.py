@@ -281,14 +281,12 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='
   time_sort_index = adata.obs[timepoint_obs].sort_values(inplace=False).index
   adata = adata[time_sort_index,:].copy()
 
-  # Determine the smallest number of cells in any timepoint (for downsampling)
-  min_cells_per_timepoint = np.min(adata.obs[timepoint_obs].value_counts())
-
   # Generate a list of individual timepoint adatas
   adata_list = []
   for tp in timepoint_list:
     adata_tmp = adata[adata.obs[timepoint_obs]==tp]
     if downsample_cells:
+        min_cells_per_timepoint = np.min(adata.obs[timepoint_obs].value_counts())
         adata_tmp = sc.pp.subsample(adata_tmp, n_obs=min_cells_per_timepoint, copy=True)
     adata_list.append(adata_tmp)
 
@@ -324,8 +322,6 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='
       nHVgenes.append(this_round_nHVgenes)
       nSigPCs.append(this_round_nSigPCs)
       
-      print(adata_tmp)
-
       # Clean up objects from this round
       del adata_tmp.layers
       adata_list[n] = adata_tmp.copy()
