@@ -274,12 +274,12 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='
 
   # Sort the cells in adata by timepoint
   time_sort_index = adata.obs[timepoint_obs].sort_values(inplace=False).index
-  adata = adata[time_sort_index,:].copy()
+  adata = adata[time_sort_index,:] #.copy()
 
   # Generate a list of individual timepoint adatas
   adata_list = []
   for tp in timepoint_list:
-    adata_tmp = adata[adata.obs[timepoint_obs]==tp]
+    adata_tmp = adata[adata.obs[timepoint_obs]==tp].copy()
     if downsample_cells:
         min_cells_per_timepoint = np.min(adata.obs[timepoint_obs].value_counts())
         adata_tmp = sc.pp.subsample(adata_tmp, n_obs=min_cells_per_timepoint, copy=True)
@@ -306,9 +306,9 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='
       # Get the top highly variable genes and up to the first 300 PCs
       get_variable_genes(adata_tmp, batch_key=batch_obs, filter_method=vscore_filter_method, top_n_genes=vscore_top_n_genes, min_vscore_pctl=vscore_min_pctl)
       nPCs_test_use = np.min([300, np.sum(adata_tmp.var.highly_variable)-1]) # in case nHVgenes is < nPCs
-      #get_significant_pcs(adata_tmp, n_iter=get_sig_pcs_n_trials, nPCs_test=nPCs_test_use, show_plots=False, verbose=False)
-      get_sig_pcs_fast(adata_tmp, n_iter=get_sig_pcs_n_trials, nPCs_test=nPCs_test_use, show_plots=False, verbose=False)
-      sc.pp.pca(adata_tmp, n_comps=nPCs_test_use, zero_center=True)
+      get_significant_pcs(adata_tmp, n_iter=get_sig_pcs_n_trials, nPCs_test=nPCs_test_use, show_plots=False, verbose=False)
+      #sc.pp.pca(adata_tmp, n_comps=nPCs_test_use, zero_center=True) # use up to the full 300 PCs
+      sc.pp.pca(adata_tmp, n_comps=adata_tmp.uns['n_sig_PCs'], zero_center=True) # use the significant PCs
       if batch_obs is not None and use_harmony:
           with disable_logging():
               sc.external.pp.harmony_integrate(adata_tmp, batch_obs, basis='X_pca', adjusted_basis='X_pca_harmony', max_iter_harmony=20, verbose=False)
@@ -320,7 +320,7 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='
       nSigPCs.append(this_round_nSigPCs)
       
       # Clean up objects from this round
-      del adata_tmp.layers # subsequent steps no longer need the tpm layer, just the zscored data in X
+      del adata_tmp #.layers # subsequent steps no longer need the tpm layer, just the zscored data in X
       #adata_list[n] = adata_tmp #.copy()
       #del adata_tmp
       gc.collect()
