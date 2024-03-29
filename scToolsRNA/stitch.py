@@ -303,7 +303,6 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='
       # Normalize and scale data
       # We will need 2 data layers: (1) tpm_no_log for finding variable genes, and (2) zscored/scaled for pca
       pp_raw2norm(adata_tmp, include_raw_layers=False)
-      del adata_tmp.layers['tpm']
 
       # Get the top highly variable genes and up to the first 300 PCs
       get_variable_genes(adata_tmp, batch_key=batch_obs, filter_method=vscore_filter_method, top_n_genes=vscore_top_n_genes, min_vscore_pctl=vscore_min_pctl)
@@ -321,7 +320,7 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='
       nSigPCs.append(this_round_nSigPCs)
       
       # Clean up objects from this round
-      del adata_tmp.layers
+      del adata_tmp.layers # subsequent steps no longer need the tpm layer, just the zscored data in X
       adata_list[n] = adata_tmp.copy()
       del adata_tmp
       gc.collect()
