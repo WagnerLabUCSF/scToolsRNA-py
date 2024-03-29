@@ -298,7 +298,7 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='
       if verbose: print('Computing gene vscores and PC embeddings for:', timepoint_list[n])
 
       # Specify the adata for this timepoint
-      adata_tmp = adata_list[n].copy()
+      adata_tmp = adata_list[n] # .copy()
       
       # Normalize and scale data
       # We will need 2 data layers: (1) tpm_no_log for finding variable genes, and (2) zscored/scaled for pca
@@ -321,7 +321,7 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='
       
       # Clean up objects from this round
       del adata_tmp.layers # subsequent steps no longer need the tpm layer, just the zscored data in X
-      adata_list[n] = adata_tmp.copy()
+      adata_list[n] = adata_tmp #.copy()
       del adata_tmp
       gc.collect()
 
