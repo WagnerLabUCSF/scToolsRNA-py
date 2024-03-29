@@ -320,6 +320,7 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='
       
       # Clean up objects from this round
       del adata_tmp.layers # subsequent steps no longer need the tpm layer, just the zscored data in X
+      del adata_tmp
       gc.collect()
 
   # Save results to dictionary
@@ -423,9 +424,9 @@ def stitch_get_graph(adata, timepoint_obs, batch_obs=None, n_neighbors=15, dista
       base_counter += len(adata_t1)
 
       # Cleanup objects from this round
-      del adata_t1t2
       #del adata_t1, adata_t2, adata_t1t2
-      #gc.collect()
+      del adata_t1t2
+      gc.collect()
 
   # Specify neighbor graph settings for downstream steps
   adata.obsm['X_stitch_dummy'] = np.zeros((adata.shape[0], 50)) # empty X for initializing umap later on
