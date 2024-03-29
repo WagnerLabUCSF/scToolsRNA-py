@@ -262,7 +262,7 @@ def stitch_get_dims_df(adata):
 
 ### CORE STITCH METHODS ###
 
-def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='majority', vscore_min_pctl=90, vscore_top_n_genes=3000, use_harmony=False, downsample_cells=False, verbose=True):
+def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='majority', vscore_min_pctl=90, vscore_top_n_genes=3000, get_sig_pcs_n_trials=1, use_harmony=False, downsample_cells=False, verbose=True):
   
   # Identify highly variable genes and PC embeddings for a series of basis timepoints in adata
   # This function provides the information on embedding spaces for each timepoint and is a
@@ -456,6 +456,7 @@ def stitch(adata,
            vscore_filter_method='majority',
            vscore_min_pctl=90,
            vscore_top_n_genes=3000,
+           get_sig_pcs_n_trials=1,
            downsample_cells=False,
            n_neighbors=15,
            distance_metric='correlation',
@@ -467,7 +468,7 @@ def stitch(adata,
            keep_adata_list=False):
 
     # Estimate dimensionality of each timepoint
-    stitch_get_dims(adata=adata, timepoint_obs=timepoint_obs, batch_obs=batch_obs, vscore_filter_method=vscore_filter_method, vscore_min_pctl=vscore_min_pctl, vscore_top_n_genes=vscore_top_n_genes, use_harmony=use_harmony, downsample_cells=downsample_cells, verbose=verbose)
+    stitch_get_dims(adata=adata, timepoint_obs=timepoint_obs, batch_obs=batch_obs, vscore_filter_method=vscore_filter_method, vscore_min_pctl=vscore_min_pctl, vscore_top_n_genes=vscore_top_n_genes, get_sig_pcs_n_trials=get_sig_pcs_n_trials, use_harmony=use_harmony, downsample_cells=downsample_cells, verbose=verbose)
     
     # Dimensionality plots
     plot_stitch_dims(adata)
