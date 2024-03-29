@@ -418,6 +418,8 @@ def stitch_get_graph(adata, timepoint_obs, batch_obs=None, n_neighbors=15, dista
         adata_ref = adata_t1
         adata_prj = adata_t2
 
+      print(adata_ref.var)
+      print(adata_prj.var)  
       # Embed adata_prj into the pca subspace defined by adata_ref
       sc.pp.neighbors(adata_ref, n_neighbors=n_neighbors, n_pcs=adata_ref.uns['n_sig_PCs'], metric=distance_metric, use_rep='X_pca')
       sc.tl.ingest(adata_prj, adata_ref, embedding_method='pca')
