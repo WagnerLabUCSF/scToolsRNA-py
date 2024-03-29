@@ -334,8 +334,10 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='
       #X_pca.append(adata_tmp.obsm['X_pca'])
       #if batch_obs is not None and use_harmony: X_pca_Harmony.append(adata_tmp.obsm['X_pca_harmony'])
       
+      print(adata_tmp)
+
       # Clean up objects from this round
-      del adata_tmp.X, adata_tmp.layers
+      del adata_tmp.layers
       adata_list[n] = adata_tmp.copy()
       del adata_tmp
       gc.collect()
@@ -409,8 +411,8 @@ def stitch_get_graph(adata, timepoint_obs, batch_obs=None, n_neighbors=15, dista
       #adata_t2.uns['pca']['params'] = {'zero_center': True, 'use_highly_variable': True}
       
       # Normalize 
-      pp_raw2norm(adata_t1, include_raw_layers=False)
-      pp_raw2norm(adata_t2, include_raw_layers=False)
+      #pp_raw2norm(adata_t1, include_raw_layers=False)
+      #pp_raw2norm(adata_t2, include_raw_layers=False)
 
       # Specify the reference and projection relationship
       if method=='forward':
