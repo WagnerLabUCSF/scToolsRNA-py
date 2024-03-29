@@ -71,6 +71,7 @@ def get_connectivities_from_dist_csr(D_csr, n_neighbors):
   return connectivities
 
 
+
 ### DIAGNOSTICS ###
 
 def plot_stitch_hvgene_overlaps(adata, jaccard=True, cmap='jet', zmax=None):
@@ -599,91 +600,4 @@ def stitch_orig(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_m
                               
  
   return adata
-
-
-def stitch_get_dims_orig(adata, timepoint_obs, batch_obs=None, vscore_filter_method='majority', vscore_min_pctl=85, downsample_cells=True):
-  
-  #
-  # Identify top variable genes and PC dimensions for a series of timepoints
-  # This function will update adata with adata.uns['stitch_dims'], a dictionary that contains the
-  # results of the dimensionality tests.  
-  #
-   
-  # Determine the # of timepoints in adata
-  timepoint_list = np.unique(adata.obs[timepoint_obs])
-  n_timepoints = len(timepoint_list)
-
-  # Sort the cells in adata by timepoint
-  time_sort_index = adata.obs[timepoint_obs].sort_values(inplace=False).index
-  adata = adata[time_sort_index,:].copy()
-
-  # Determine the smallest number of cells in any timepoint (for downsampling)
-  min_cells_per_timepoint = np.min(adata.obs[timepoint_obs].value_counts())
-
-  # Generate a list of individual timepoint adatas
-  adata_list = []
-  for tp in timepoint_list:
-    adata_tmp = adata[adata.obs[timepoint_obs]==tp]
-    if downsample_cells:
-        adata_tmp = sc.pp.subsample(adata_tmp, n_obs=min_cells_per_timepoint, copy=True)
-    adata_list.append(adata_tmp)
-
-  # Initialize results lists
-  nHVgenes = []
-  stitch_HVgene_flags = []
-  stitch_HVgene_vscores = []
-  stitch_HVgene_batch_count = []
-  nSigPCs = []
-  PCs = []
-  stitch_PC_loadings = []
-  
-  # Get dimensionality info for each timepoint
-  with warnings.catch_warnings():
-    warnings.simplefilter('ignore')
-    for n in range(n_timepoints):
-      
-      print('Computing gene vscores and PCs for:', timepoint_list[n])
-
-      # Specify the adata for this timepoint
-      adata_tmp = adata_list[n].copy()
-      
-      # Normalize 
-      pp_raw2norm(adata_tmp, include_raw_layers=False)
-
-      # Get the top highly variable genes and up to the first 300 PCs
-      get_variable_genes(adata_tmp, batch_key=batch_obs, filter_method=vscore_filter_method, min_vscore_pctl=vscore_min_pctl)
-      nPCs_test_use = np.min([300, np.sum(adata_tmp.var.highly_variable)-1]) # in case nHVgenes is < nPCs
-      get_significant_pcs(adata_tmp, n_iter=1, nPCs_test = nPCs_test_use, show_plots=False, verbose=False)
-      sc.pp.pca(adata_tmp, n_comps=nPCs_test_use, zero_center=True)
-      
-      # Organize results
-      this_round_nHVgenes = np.sum(np.sum(adata_tmp.var['highly_variable']))
-      this_round_nSigPCs = adata_tmp.uns['n_sig_PCs']
-      nHVgenes.append(this_round_nHVgenes)
-      stitch_HVgene_flags.append(adata_tmp.var['highly_variable'])
-      stitch_HVgene_vscores.append(adata_tmp.var['vscore'])
-      nSigPCs.append(this_round_nSigPCs)
-      PCs.append(adata_tmp.obsm['X_pca'])
-      stitch_PC_loadings.append(adata_tmp.varm['PCs'])
-
-      # Delete temp objects
-      adata_list[n] = []
-      del adata_tmp
-      gc.collect()
-
-  # Save results to dictionary
-  adata.uns['stitch_dims'] = {'timepoint_obs': timepoint_obs, 'batch_obs': batch_obs, 
-                              'vscore_filter_method': vscore_filter_method, 'stitch_timepoints': timepoint_list, 
-                              'stitch_n_timepoints': n_timepoints, 'nHVgenes': nHVgenes, 
-                              'stitch_HVgene_flags': stitch_HVgene_flags, 'stitch_HVgene_vscores': stitch_HVgene_vscores, 
-                              'stitch_PC_loadings': stitch_PC_loadings, 'nSigPCs': nSigPCs}
-                              #'X_pca': PCs
- 
-  return adata
-
-
-
-
-
-
 
