@@ -260,9 +260,9 @@ def stitch_get_dims_df(adata):
 
 
 
-### STITCH FXNS ###
+### STITCH METHODS ###
 
-def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='majority', vscore_min_pctl=90, vscore_top_n_genes=3000, use_harmony=True, downsample_cells=False):
+def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='majority', vscore_min_pctl=90, vscore_top_n_genes=3000, use_harmony=True, downsample_cells=False, verbose=True):
   
   #
   # Identify top variable genes and PC embeddings for a series of basis timepoints in adata
@@ -300,7 +300,7 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='
     warnings.simplefilter('ignore')
     for n in range(n_timepoints):
       
-      print('Computing gene vscores and PC embeddings for:', timepoint_list[n])
+      if verbose: print('Computing gene vscores and PC embeddings for:', timepoint_list[n])
 
       # Specify the adata for this timepoint
       adata_tmp = adata_list[n].copy()
@@ -446,6 +446,43 @@ def stitch_get_graph(adata, timepoint_obs, batch_obs=None, n_neighbors=15, dista
                               'use_harmony': use_harmony, 'max_iter_harmony': max_iter_harmony, 'self_edge_filter': self_edge_filter})
   
   return adata
+
+
+
+### STITCH PIPELINE ###
+
+def stitch(adata, 
+           timepoint_obs, 
+           batch_obs=None, 
+           vscore_filter_method='majority',
+           vscore_min_pctl=90,
+           vscore_top_n_genes=3000,
+           downsample_cells=False,
+           n_neighbors=15,
+           distance_metric='correlation',
+           method='reverse',
+           self_edge_filter=True,
+           use_harmony=True,
+           max_iter_harmony=20,
+           verbose=True,
+           keep_adata_list=False):
+
+    # Estimate dimensionality of each timepoint
+    stitch_get_dims(adata=adata, timepoint_obs=timepoint_obs, batch_obs=batch_obs, vscore_filter_method=vscore_filter_method, vscore_min_pctl=vscore_min_pctl, vscore_top_n_genes=vscore_top_n_genes, use_harmony=use_harmony, downsample_cells=downsample_cells, verbose=verbose)
+    
+    # Dimensionality plots
+    plot_stitch_dims(adata)
+    plot_stitch_hvgene_overlaps(adata, cmap='jet')
+    plot_stitch_pcgene_overlaps(adata, cmap='jet')
+    
+    # Build and embed the stitch graph
+    stitch_get_graph(adata=adata, timepoint_obs=timepoint_obs, batch_obs=batch_obs, n_neighbors=n_neighbors, distance_metric=distance_metric, method=method, self_edge_filter=self_edge_filter, use_harmony=use_harmony, max_iter_harmony=max_iter_harmony, verbose=verbose)
+    sc.tl.umap(adata)
+
+    # Remove adata_list from uns 
+    if not keep_adata_list: del adata.uns['stitch']['adatas']
+    
+    return adata
 
 
 
