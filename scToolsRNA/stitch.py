@@ -265,9 +265,8 @@ def stitch_get_dims_df(adata):
 def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='majority', vscore_min_pctl=90, vscore_top_n_genes=3000, get_sig_pcs_n_trials=1, use_harmony=False, downsample_cells=False, verbose=True):
   
   # Identify highly variable genes and PC embeddings for a series of basis timepoints in adata
-  # This function provides the information on embedding spaces for each timepoint and is a
-  # prerequisite for constructing a stitch neighbor graph
-  # Returns an updated adata with results dictionary stored in adata.uns['stitch']
+  # This function must be run prior to constructing the stitch neighbor graph
+  # Returns an updated adata with embedding results stored in adata.uns['stitch']
    
   # Determine the # of timepoints in adata
   timepoint_list = np.unique(adata.obs[timepoint_obs])
@@ -338,9 +337,8 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='
 def stitch_get_graph(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric='correlation', method='reverse', self_edge_filter=True, use_harmony=True, max_iter_harmony=20, verbose=True):
 
   # Builds the stitch neigbhor graph
-  #
-  # Returns an updated adata with results dictionary stored in adata.uns['stitch'] and neighbor
-  # graph objects/info stored in adata.obsp, adata.obsm, and adata.uns['neighbors']
+  # This function returns an updated adata object with new info saved to adata.uns['stitch'] and
+  # also generates graph objects/info stored in adata.obsp, adata.obsm, and adata.uns['neighbors']
 
   # Determine the # of timepoints in adata
   timepoint_list = adata.uns['stitch']['timepoints']
