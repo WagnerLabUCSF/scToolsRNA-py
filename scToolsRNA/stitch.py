@@ -260,7 +260,7 @@ def stitch_get_dims_df(adata):
 
 
 
-### STITCH METHODS ###
+### CORE STITCH METHODS ###
 
 def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='majority', vscore_min_pctl=90, vscore_top_n_genes=3000, use_harmony=True, downsample_cells=False, verbose=True):
   
