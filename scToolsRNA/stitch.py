@@ -306,6 +306,7 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='
       
       # Normalize 
       pp_raw2norm(adata_tmp, include_raw_layers=False)
+      del adata_tmp.layers['tpm']
 
       # Get the top highly variable genes and up to the first 300 PCs
       get_variable_genes(adata_tmp, batch_key=batch_obs, filter_method=vscore_filter_method, top_n_genes=vscore_top_n_genes, min_vscore_pctl=vscore_min_pctl)
