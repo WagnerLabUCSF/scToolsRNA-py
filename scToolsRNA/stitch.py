@@ -295,11 +295,11 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='
   # Initialize results containers
   nHVgenes = []
   nSigPCs = []
-  hvflags = []
-  obsnames = []
-  X_pca = []
-  X_pca_Harmony = []
-  PCs = []
+  #hvflags = []
+  #obsnames = []
+  #X_pca = []
+  #X_pca_Harmony = []
+  #PCs = []
   
   # Get dimensionality info for each timepoint
   with warnings.catch_warnings():
@@ -328,15 +328,14 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='
       this_round_nSigPCs = adata_tmp.uns['n_sig_PCs']
       nHVgenes.append(this_round_nHVgenes)
       nSigPCs.append(this_round_nSigPCs)
-      hvflags.append(adata_tmp.var.highly_variable)
-      obsnames.append(adata_tmp.obs_names)
-      PCs.append(adata_tmp.varm['PCs'])
-      X_pca.append(adata_tmp.obsm['X_pca'])
-      if batch_obs is not None and use_harmony: X_pca_Harmony.append(adata_tmp.obsm['X_pca_harmony'])
+      #hvflags.append(adata_tmp.var.highly_variable)
+      #obsnames.append(adata_tmp.obs_names)
+      #PCs.append(adata_tmp.varm['PCs'])
+      #X_pca.append(adata_tmp.obsm['X_pca'])
+      #if batch_obs is not None and use_harmony: X_pca_Harmony.append(adata_tmp.obsm['X_pca_harmony'])
       
       # Clean up objects from this round
-      del adata_tmp.X
-      del adata_tmp.layers
+      del adata_tmp.X, adata_tmp.layers
       adata_list[n] = adata_tmp.copy()
       del adata_tmp
       gc.collect()
@@ -346,9 +345,9 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='
                          'vscore_filter_method': vscore_filter_method, 'vscore_min_pctl': vscore_min_pctl, 
                          'timepoints': timepoint_list, 'nTimepoints': n_timepoints, 'nHVgenes': nHVgenes, 
                          'nSigPCs': nSigPCs, 'adatas': adata_list, 'use_harmony': use_harmony, 
-                         'downsample_cells': downsample_cells, 'hvflags': hvflags, 
-                         'obsnames': obsnames, 'X_pca': X_pca, 
-                         'X_pca_Harmony': X_pca_Harmony, 'PCs': PCs}
+                         'downsample_cells': downsample_cells} #
+                         #'hvflags': hvflags, 'obsnames': obsnames, 'X_pca': X_pca, 
+                         #'X_pca_Harmony': X_pca_Harmony, 'PCs': PCs}
 
   return adata
 
@@ -363,10 +362,10 @@ def stitch_get_graph(adata, timepoint_obs, batch_obs=None, n_neighbors=15, dista
   # Get the previously built embedding info from each timepoint
   adata_list = adata.uns['stitch']['adatas']
   obsnames = adata.uns['stitch']['obsnames']
-  hvflags = adata.uns['stitch']['hvflags']
-  nSigPCs = adata.uns['stitch']['nSigPCs']
-  X_pca = adata.uns['stitch']['X_pca']
-  PCs = adata.uns['stitch']['PCs']
+  #hvflags = adata.uns['stitch']['hvflags']
+  #nSigPCs = adata.uns['stitch']['nSigPCs']
+  #X_pca = adata.uns['stitch']['X_pca']
+  #PCs = adata.uns['stitch']['PCs']
 
   # Set directionality of time projections
   if method=='forward':
@@ -389,22 +388,25 @@ def stitch_get_graph(adata, timepoint_obs, batch_obs=None, n_neighbors=15, dista
       
       if verbose: print('Stitching Timepoints:', timepoint_list[n], arrow_str, timepoint_list[n+1])
       
-      # Specify adata_t1 and adata_t2 for this round
-      adata_t1 = adata[obsnames[n],:].copy()
-      adata_t1.var['highly_variable'] = hvflags[n]
-      adata_t1.uns['n_sig_PCs'] = nSigPCs[n]
-      adata_t1.obsm['X_pca'] = X_pca[n]
-      adata_t1.varm['PCs'] = PCs[n]
-      adata_t1.uns['pca'] = {}
-      adata_t1.uns['pca']['params'] = {'zero_center': True, 'use_highly_variable': True}
       
-      adata_t2 = adata[obsnames[n+1],:].copy()
-      adata_t2.var['highly_variable'] = hvflags[n+1]
-      adata_t2.uns['n_sig_PCs'] = nSigPCs[n+1]
-      adata_t2.obsm['X_pca'] = X_pca[n+1]
-      adata_t2.varm['PCs'] = PCs[n+1]
-      adata_t2.uns['pca'] = {}
-      adata_t2.uns['pca']['params'] = {'zero_center': True, 'use_highly_variable': True}
+      # Specify adata_t1 and adata_t2 for this round
+      adata_t1 = adata_list[n].copy()
+      #adata_t1 = adata[obsnames[n],:].copy()
+      #adata_t1.var['highly_variable'] = hvflags[n]
+      #adata_t1.uns['n_sig_PCs'] = nSigPCs[n]
+      #adata_t1.obsm['X_pca'] = X_pca[n]
+      #adata_t1.varm['PCs'] = PCs[n]
+      #adata_t1.uns['pca'] = {}
+      #adata_t1.uns['pca']['params'] = {'zero_center': True, 'use_highly_variable': True}
+      
+      adata_t2 = adata_list[n+1].copy()
+      #adata_t2 = adata[obsnames[n+1],:].copy()
+      #adata_t2.var['highly_variable'] = hvflags[n+1]
+      #adata_t2.uns['n_sig_PCs'] = nSigPCs[n+1]
+      #adata_t2.obsm['X_pca'] = X_pca[n+1]
+      #adata_t2.varm['PCs'] = PCs[n+1]
+      #adata_t2.uns['pca'] = {}
+      #adata_t2.uns['pca']['params'] = {'zero_center': True, 'use_highly_variable': True}
       
       # Normalize 
       pp_raw2norm(adata_t1, include_raw_layers=False)
