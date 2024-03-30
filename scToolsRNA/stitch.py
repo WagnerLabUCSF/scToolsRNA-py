@@ -424,8 +424,7 @@ def stitch_get_graph(adata, timepoint_obs, batch_obs=None, n_neighbors=15, dista
       base_counter += len(adata_t1)
 
       # Cleanup objects from this round
-      #del adata_t1, adata_t2, adata_t1t2
-      del adata_t1t2
+      del adata_t1, adata_t2, adata_t1t2
       gc.collect()
 
   # Specify neighbor graph settings for downstream steps
