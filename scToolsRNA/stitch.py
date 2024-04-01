@@ -319,7 +319,7 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='
       nSigPCs.append(this_round_nSigPCs)
       
       # Clean up objects from this round
-      del adata_tmp.layers, adata_tmp  #subsequent steps no longer need the tpm layer, just the zscored data in X
+      del adata_tmp.layers, adata_tmp   # subsequent steps no longer need the tpm layer, just the zscored data in X
       gc.collect()
 
   # Save results to dictionary
