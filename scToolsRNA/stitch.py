@@ -77,19 +77,17 @@ def get_connectivities_from_dist_csr(D_csr, n_neighbors):
 def plot_stitch_hvgene_overlaps(adata, jaccard=True, cmap='jet', n_clust=3, zmax=None):
 
     labels = adata.uns['stitch']['timepoints'].astype('int').astype('str')
-    
-    hv_flags = []
-    for j in range(adata.uns['stitch']['nTimepoints']):
-        hv_flags.append(adata.uns['stitch']['adatas'][j].var.highly_variable)
+    hvgene_list = adata.uns['stitch']['HVgenes']
 
-    # Calculate overlap scores between boolean arrays for the HVgene sets
-    n = len(hv_flags)
+    # Calculate overlap scores between hv gene sets
+    n = len(hvgene_list)
     overlap = np.zeros((n, n), dtype=float)
     for i in range(n):
         for j in range(i+1, n):
-            intersection_size = np.sum(hv_flags[i] & hv_flags[j])
-            union_size = np.sum(hv_flags[i] | hv_flags[j])
-            min_group_size = np.min([np.sum(hv_flags[i]), np.sum(hv_flags[j])])
+            intersection = list(set(hvgene_list[i]) & set(hvgene_list[j])) #map(eq, hvgene_list[i], hvgene_list[j])
+            intersection_size = len(intersection)
+            union_size = len(hvgene_list[i]) + len(hvgene_list[j])
+            min_group_size = np.min([len(hvgene_list[i]), len(hvgene_list[j])])
             if jaccard == True:
                 denom = union_size
             else:
@@ -97,8 +95,29 @@ def plot_stitch_hvgene_overlaps(adata, jaccard=True, cmap='jet', n_clust=3, zmax
             overlap[i, j] = intersection_size / denom if denom != 0 else 0
             overlap[j, i] = overlap[i, j]
 
+    # Previous version with boolean flags instead of gene names 
+    #
+    #hv_flags = []
+    #for j in range(adata.uns['stitch']['nTimepoints']):
+    #    hv_flags.append(adata.uns['stitch']['adatas'][j].var.highly_variable)
+    #
+    # Calculate overlap scores between boolean arrays for the hv gene sets
+    #n = len(hv_flags)
+    #overlap = np.zeros((n, n), dtype=float)
+    #for i in range(n):
+    #    for j in range(i+1, n):
+    #        intersection_size = np.sum(hv_flags[i] & hv_flags[j])
+    #        union_size = np.sum(hv_flags[i] | hv_flags[j])
+    #        min_group_size = np.min([np.sum(hv_flags[i]), np.sum(hv_flags[j])])
+    #        if jaccard == True:
+    #            denom = union_size
+    #        else:
+    #            denom = min_group_size                        
+    #        overlap[i, j] = intersection_size / denom if denom != 0 else 0
+    #        overlap[j, i] = overlap[i, j]
+
     # Perform clustering
-    distances = 1 - overlap  # Convert similarities to distances
+    distances = 1 - overlap  # convert similarities to distances
     np.fill_diagonal(distances, 0) # Set diagonal elements to 0 to avoid numerical issues
     condensed_dist = squareform(distances)
     Z = sch.linkage(condensed_dist, method='ward', metric='euclidean')
@@ -145,32 +164,20 @@ def plot_stitch_hvgene_overlaps(adata, jaccard=True, cmap='jet', n_clust=3, zmax
     fig.show()
 
 
-def plot_stitch_pcgene_overlaps(adata, jaccard=True, cmap='jet', n_clust=3, n_genes_per_pc=200, n_pcs=300, zmax=None):
+def plot_stitch_pcgene_overlaps(adata, jaccard=True, cmap='jet', n_clust=3, n_genes_per_pc=20, n_pcs=300, zmax=None):
 
     labels = adata.uns['stitch']['timepoints'].astype('int').astype('str')
-
-    pc_loadings_list = []
-    for j in range(adata.uns['stitch']['nTimepoints']):
-        pc_loadings_list.append(adata.uns['stitch']['adatas'][j].varm['PCs'])
-
-    # Get a list of the top-loaded genes from PCA loading matrices
-    pvgenes_list = []
-    for pc_loadings in pc_loadings_list:
-        pvgenes_this_tp = []
-        for pc in range(np.min([n_pcs, pc_loadings.shape[1]])): # Only consider up to n_pcs       
-            top_gene_ind_this_pc = list(np.argsort(np.absolute((pc_loadings[:,pc])))[::-1][:n_genes_per_pc])
-            pvgenes_this_tp.extend(adata.var_names[top_gene_ind_this_pc])
-        pvgenes_list.append(list(set(pvgenes_this_tp)))
+    pcgenes_list = adata.uns['stitch']['PCgenes']
 
     # Calculate overlap scores between pvgene sets
-    n = len(pvgenes_list)
+    n = len(pcgenes_list)
     overlap = np.zeros((n, n), dtype=float)
     for i in range(n):
         for j in range(i+1, n):
-            intersection = list(set(pvgenes_list[i]) & set(pvgenes_list[j])) #map(eq, pvgenes_list[i], pvgenes_list[j])
+            intersection = list(set(pcgenes_list[i]) & set(pcgenes_list[j])) #map(eq, pcgenes_list[i], pcgenes_list[j])
             intersection_size = len(intersection)
-            union_size = len(pvgenes_list[i]) + len(pvgenes_list[j])
-            min_group_size = np.min([len(pvgenes_list[i]), len(pvgenes_list[j])])
+            union_size = len(pcgenes_list[i]) + len(pcgenes_list[j])
+            min_group_size = np.min([len(pcgenes_list[i]), len(pcgenes_list[j])])
             if jaccard == True:
                 denom = union_size
             else:
@@ -323,7 +330,7 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='
 
       # Organize results
       nHVgenes.append(np.sum(np.sum(adata_tmp.var['highly_variable'])))
-      HVgenes.append(list(adata_tmp.var['highly_variable'].index))
+      HVgenes.append(list(adata_tmp.var[adata_tmp.var['highly_variable']==True].index))
       nSigPCs.append(adata_tmp.uns['n_sig_PCs'])
       PCgenes.append(list(set(this_round_PC_genes)))
 
