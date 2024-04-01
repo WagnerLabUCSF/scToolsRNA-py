@@ -262,9 +262,9 @@ def stitch_get_dims_df(adata):
 
 ### CORE STITCH METHODS ###
 
-def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='majority', vscore_min_pctl=90, vscore_top_n_genes=3000, get_sig_pcs_n_trials=1, use_harmony=False, downsample_cells=False, verbose=True):
+def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='majority', vscore_min_pctl=90, vscore_top_n_genes=3000, get_sig_pcs_n_trials=1, pca_top_n_genes=20, use_harmony=False, downsample_cells=False, verbose=True):
   
-  # Identify highly variable genes and significant PCA dimensions across basis timepoints in adata
+  # Identify highly variable genes and the # of significant PCA dimensions across basis timepoints in adata
   # This function must be run prior to constructing the stitch neighbor graph
   # Returns an updated adata with embedding results stored in adata.uns['stitch']
    
@@ -314,21 +314,18 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='
           with disable_logging():
               sc.external.pp.harmony_integrate(adata_tmp, batch_obs, basis='X_pca', adjusted_basis='X_pca_harmony', max_iter_harmony=20, verbose=False)
       
-      # Get a list of the top-loaded genes from PCA loading matrices
+      # Get a list of the top genes from PCA loading matrices
       this_round_PC_loadings = adata_tmp.varm['PCs']
       this_round_PC_genes = []
       for pc in range(adata_tmp.uns['n_sig_PCs']): # Only use significant PCs
-          top_gene_ind_this_pc = list(np.argsort(np.absolute((this_round_PC_loadings[:,pc])))[::-1][:20]) # get the top 20 genes
-          this_round_PC_genes.extend(adata.var_names[top_gene_ind_this_pc])
+          this_round_PC_gene_ind = list(np.argsort(np.absolute((this_round_PC_loadings[:,pc])))[::-1][:pca_top_n_genes]) 
+          this_round_PC_genes.extend(adata.var_names[this_round_PC_gene_ind])
 
       # Organize results
-      this_round_nHVgenes = np.sum(np.sum(adata_tmp.var['highly_variable']))
-      this_round_HVgenes = list(adata_tmp.var['highly_variable'].index)
-      this_round_nSigPCs = adata_tmp.uns['n_sig_PCs']
-      nHVgenes.append(this_round_nHVgenes)
-      HVgenes.append(this_round_HVgenes)
-      nSigPCs.append(this_round_nSigPCs)
-      PCgenes.append(list(set(pvgenes_this_tp)))
+      nHVgenes.append(np.sum(np.sum(adata_tmp.var['highly_variable'])))
+      HVgenes.append(list(adata_tmp.var['highly_variable'].index))
+      nSigPCs.append(adata_tmp.uns['n_sig_PCs'])
+      PCgenes.append(list(set(this_round_PC_genes)))
 
       
       # Clean up objects from this round
