@@ -74,7 +74,7 @@ def get_connectivities_from_dist_csr(D_csr, n_neighbors):
 
 ### DIAGNOSTICS ###
 
-def plot_stitch_hvgene_overlaps(adata, jaccard=True, cmap='jet', zmax=None):
+def plot_stitch_hvgene_overlaps(adata, jaccard=True, cmap='jet', n_clust=3, zmax=None):
 
     labels = adata.uns['stitch']['timepoints'].astype('int').astype('str')
     
@@ -102,7 +102,7 @@ def plot_stitch_hvgene_overlaps(adata, jaccard=True, cmap='jet', zmax=None):
     np.fill_diagonal(distances, 0) # Set diagonal elements to 0 to avoid numerical issues
     condensed_dist = squareform(distances)
     Z = sch.linkage(condensed_dist, method='ward', metric='euclidean')
-    clusters = sch.fcluster(Z, 4, criterion='maxclust')
+    clusters = sch.fcluster(Z, n_clust, criterion='maxclust')
     clusters = clusters.reshape(len(clusters),1)
 
     # Generate a list of categorical colors for the cluster key
@@ -145,7 +145,7 @@ def plot_stitch_hvgene_overlaps(adata, jaccard=True, cmap='jet', zmax=None):
     fig.show()
 
 
-def plot_stitch_pcgene_overlaps(adata, jaccard=True, cmap='jet', n_genes_per_pc=200, n_pcs=300, zmax=None):
+def plot_stitch_pcgene_overlaps(adata, jaccard=True, cmap='jet', n_clust=3, n_genes_per_pc=200, n_pcs=300, zmax=None):
 
     labels = adata.uns['stitch']['timepoints'].astype('int').astype('str')
 
@@ -183,7 +183,7 @@ def plot_stitch_pcgene_overlaps(adata, jaccard=True, cmap='jet', n_genes_per_pc=
     np.fill_diagonal(distances, 0) # Set diagonal elements to 0 to avoid numerical issues
     condensed_dist = squareform(distances)
     Z = sch.linkage(condensed_dist, method='ward', metric='euclidean')
-    clusters = sch.fcluster(Z, 4, criterion='maxclust')
+    clusters = sch.fcluster(Z, n_clust, criterion='maxclust')
     clusters = clusters.reshape(len(clusters),1)
 
     # Generate a list of categorical colors for the cluster key
