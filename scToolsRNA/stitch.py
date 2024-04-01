@@ -164,7 +164,7 @@ def plot_stitch_hvgene_overlaps(adata, jaccard=True, cmap='jet', n_clust=3, zmax
     fig.show()
 
 
-def plot_stitch_pcgene_overlaps(adata, jaccard=True, cmap='jet', n_clust=3, n_genes_per_pc=20, n_pcs=300, zmax=None):
+def plot_stitch_pcgene_overlaps(adata, jaccard=True, cmap='jet', n_clust=3, n_pcs=300, zmax=None):
 
     labels = adata.uns['stitch']['timepoints'].astype('int').astype('str')
     pcgenes_list = adata.uns['stitch']['PCgenes']
@@ -334,7 +334,6 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='
       nSigPCs.append(adata_tmp.uns['n_sig_PCs'])
       PCgenes.append(list(set(this_round_PC_genes)))
 
-      
       # Clean up objects from this round
       adata_list[n] = []
       gc.collect()
@@ -348,7 +347,7 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='
   return adata
 
 
-def stitch_get_graph(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric='correlation', method='reverse', self_edge_filter=True, use_harmony=True, max_iter_harmony=20, verbose=True):
+def stitch_get_graph(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_metric='correlation', method='reverse', self_edge_filter=True, use_harmony=True, max_iter_harmony=20, downsample_cells=False, verbose=True):
 
   # Builds the stitch neigbhor graph
   # This function returns an updated adata object with new info saved to adata.uns['stitch'] and
