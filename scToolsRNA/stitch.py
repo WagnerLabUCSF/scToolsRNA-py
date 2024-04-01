@@ -264,7 +264,7 @@ def stitch_get_dims_df(adata):
 
 def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='majority', vscore_min_pctl=90, vscore_top_n_genes=3000, get_sig_pcs_n_trials=1, use_harmony=False, downsample_cells=False, verbose=True):
   
-  # Identify highly variable genes and PC embeddings for a series of basis timepoints in adata
+  # Identify highly variable genes and significant PCA dimensions across basis timepoints in adata
   # This function must be run prior to constructing the stitch neighbor graph
   # Returns an updated adata with embedding results stored in adata.uns['stitch']
    
@@ -287,7 +287,9 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='
 
   # Initialize results containers
   nHVgenes = []
+  HVgenes = []
   nSigPCs = []
+  PCgenes = []
   
   # Get dimensionality info for each timepoint
   with warnings.catch_warnings():
@@ -312,22 +314,32 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='
           with disable_logging():
               sc.external.pp.harmony_integrate(adata_tmp, batch_obs, basis='X_pca', adjusted_basis='X_pca_harmony', max_iter_harmony=20, verbose=False)
       
+      # Get a list of the top-loaded genes from PCA loading matrices
+      this_round_PC_loadings = adata_tmp.varm['PCs']
+      this_round_PC_genes = []
+      for pc in range(adata_tmp.uns['n_sig_PCs']): # Only use significant PCs
+          top_gene_ind_this_pc = list(np.argsort(np.absolute((this_round_PC_loadings[:,pc])))[::-1][:20]) # get the top 20 genes
+          this_round_PC_genes.extend(adata.var_names[top_gene_ind_this_pc])
+
       # Organize results
       this_round_nHVgenes = np.sum(np.sum(adata_tmp.var['highly_variable']))
+      this_round_HVgenes = list(adata_tmp.var['highly_variable'].index)
       this_round_nSigPCs = adata_tmp.uns['n_sig_PCs']
       nHVgenes.append(this_round_nHVgenes)
+      HVgenes.append(this_round_HVgenes)
       nSigPCs.append(this_round_nSigPCs)
+      PCgenes.append(list(set(pvgenes_this_tp)))
+
       
       # Clean up objects from this round
-      del adata_tmp.layers, adata_tmp   # subsequent steps no longer need the tpm layer, just the zscored data in X
+      adata_list[n] = []
       gc.collect()
 
   # Save results to dictionary
   adata.uns['stitch'] = {'timepoint_obs': timepoint_obs, 'batch_obs': batch_obs, 
                          'vscore_filter_method': vscore_filter_method, 'vscore_min_pctl': vscore_min_pctl, 
                          'timepoints': timepoint_list, 'nTimepoints': n_timepoints, 'nHVgenes': nHVgenes, 
-                         'nSigPCs': nSigPCs, 'adatas': adata_list, 'use_harmony': use_harmony, 
-                         'downsample_cells': downsample_cells} 
+                         'HVgenes': HVgenes, 'nSigPCs': nSigPCs, 'PCgenes': PCgenes, 'downsample_cells': downsample_cells} 
                          
   return adata
 
@@ -344,8 +356,17 @@ def stitch_get_graph(adata, timepoint_obs, batch_obs=None, n_neighbors=15, dista
   n_stitch_rounds = n_timepoints - 1
 
   # Get the previously built embedding info from each timepoint
-  adata_list = adata.uns['stitch']['adatas']
+  HVgenes = adata.uns['stitch']['HVgenes']
   nSigPCs = adata.uns['stitch']['nSigPCs']
+
+  # Generate a list of individual timepoint adatas
+  adata_list = []
+  for tp in timepoint_list:
+    adata_tmp = adata[adata.obs[timepoint_obs]==tp].copy()
+    if downsample_cells:
+        min_cells_per_timepoint = np.min(adata.obs[timepoint_obs].value_counts())
+        adata_tmp = sc.pp.subsample(adata_tmp, n_obs=min_cells_per_timepoint, copy=True)
+    adata_list.append(adata_tmp)
 
   # Set directionality of time projections
   if method=='forward':
@@ -372,14 +393,28 @@ def stitch_get_graph(adata, timepoint_obs, batch_obs=None, n_neighbors=15, dista
       adata_t1 = adata_list[n].copy()
       adata_t2 = adata_list[n+1].copy()
       
-      # Specify the reference and projection relationship
+      # Specify adatas for reference and projection
       if method=='forward':
         adata_ref = adata_t2
+        adata_ref.var['highly_variable'] = HVgenes[n+1]
+        adata_ref.uns['n_sig_PCs'] = nSigPCs[n+1]
         adata_prj = adata_t1
       elif method=='reverse':
         adata_ref = adata_t1
+        adata_ref.var['highly_variable'] = HVgenes[n]
+        adata_ref.uns['n_sig_PCs'] = nSigPCs[n]
         adata_prj = adata_t2
 
+      # Normalize  
+      pp_raw2norm(adata_ref, include_raw_layers=False, include_tpm_layers=False)
+      pp_raw2norm(adata_prj, include_raw_layers=False, include_tpm_layers=False)
+
+      # Perform PCA on reference timepoint
+      sc.pp.pca(adata_ref, n_comps=adata_tmp.uns['n_sig_PCs'], zero_center=True) # perform pca using the # of predetermined significant PCs
+      if batch_obs is not None and use_harmony:
+          with disable_logging():
+              sc.external.pp.harmony_integrate(adata_tmp, batch_obs, basis='X_pca', adjusted_basis='X_pca_harmony', max_iter_harmony=20, verbose=False)
+      
       # Embed adata_prj into the pca subspace defined by adata_ref
       sc.pp.neighbors(adata_ref, n_neighbors=n_neighbors, n_pcs=adata_ref.uns['n_sig_PCs'], metric=distance_metric, use_rep='X_pca')
       sc.tl.ingest(adata_prj, adata_ref, embedding_method='pca')
