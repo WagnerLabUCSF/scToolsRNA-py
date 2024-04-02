@@ -248,7 +248,7 @@ def stitch_get_dims_df(adata):
 
 ### CORE STITCH METHODS ###
 
-def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='majority', vscore_min_pctl=90, vscore_top_n_genes=3000, get_sig_pcs_n_trials=1, pca_top_n_genes=20, use_harmony=False, downsample_cells=False, verbose=True):
+def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='majority', vscore_min_pctl=90, vscore_top_n_genes=3000, get_sig_pcs_n_trials=1, pca_top_n_genes=20, downsample_cells=False, verbose=True):
   
   # Identify highly variable genes and the # of significant PCA dimensions across basis timepoints in adata
   # This function must be run prior to constructing the stitch neighbor graph
@@ -296,9 +296,6 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='
       nPCs_test_use = np.min([300, np.sum(adata_tmp.var.highly_variable)-1]) # in case nHVgenes is < nPCs
       get_significant_pcs(adata_tmp, n_iter=get_sig_pcs_n_trials, nPCs_test=nPCs_test_use, show_plots=False, verbose=False)
       sc.pp.pca(adata_tmp, n_comps=adata_tmp.uns['n_sig_PCs'], zero_center=True) # perform pca using the # of determined significant PCs
-      if batch_obs is not None and use_harmony:
-          with disable_logging():
-              sc.external.pp.harmony_integrate(adata_tmp, batch_obs, basis='X_pca', adjusted_basis='X_pca_harmony', max_iter_harmony=20, verbose=False)
       
       # Get a list of the top genes from PCA loading matrices
       this_round_PC_loadings = adata_tmp.varm['PCs']
@@ -469,24 +466,23 @@ def stitch_get_graph(adata, timepoint_obs, batch_obs=None, n_neighbors=15, dista
 ### STITCH PIPELINE ###
 
 def stitch(adata, 
-           timepoint_obs, 
-           batch_obs=None, 
-           vscore_filter_method='majority',
-           vscore_min_pctl=90,
-           vscore_top_n_genes=3000,
-           get_sig_pcs_n_trials=1,
-           downsample_cells=False,
-           n_neighbors=15,
-           distance_metric='correlation',
-           method='reverse',
-           self_edge_filter=True,
-           use_harmony=True,
-           max_iter_harmony=20,
-           verbose=True,
-           keep_adata_list=False):
+           timepoint_obs,                     # column in adata.obs containing numeric timepoint assignments (required)
+           batch_obs=None,                    # column in adata.obs containing batch assignments (optional)
+           vscore_filter_method='majority',   # vscore batch filtering method: any | multiple | majority | all | top_n_genes
+           vscore_min_pctl=90,                # vscore minimum percentile to call a gene as highly variable
+           vscore_top_n_genes=3000,           # vscore number of highly variable genes to keep (only invoked if method = top_n_genes)
+           get_sig_pcs_n_trials=1,            # number of random trials used to determine significant PCs
+           downsample_cells=False,            # whether or not to downsample all timepoints to the same # of cells
+           n_neighbors=15,                    # number of outgoing nearest neighbors to retain for the stitch graph
+           distance_metric='correlation',     # metric used to calculate nearest neighbor distances
+           method='reverse',                  # directionality of the stitch method: forward | reverse
+           self_edge_filter=True,             # whether or not to filter self edges from adata_ref
+           use_harmony=True,                  # whether or not to use harmony for batch correction (only invoked if batch_obs is not None)
+           max_iter_harmony=20,               # maximum number of harmony iterations (if used)
+           verbose=True):
 
     # Estimate dimensionality of each timepoint
-    stitch_get_dims(adata=adata, timepoint_obs=timepoint_obs, batch_obs=batch_obs, vscore_filter_method=vscore_filter_method, vscore_min_pctl=vscore_min_pctl, vscore_top_n_genes=vscore_top_n_genes, get_sig_pcs_n_trials=get_sig_pcs_n_trials, use_harmony=use_harmony, downsample_cells=downsample_cells, verbose=verbose)
+    stitch_get_dims(adata=adata, timepoint_obs=timepoint_obs, batch_obs=batch_obs, vscore_filter_method=vscore_filter_method, vscore_min_pctl=vscore_min_pctl, vscore_top_n_genes=vscore_top_n_genes, get_sig_pcs_n_trials=get_sig_pcs_n_trials, downsample_cells=downsample_cells, verbose=verbose)
     
     # Dimensionality plots
     plot_stitch_dims(adata)
@@ -497,9 +493,6 @@ def stitch(adata,
     stitch_get_graph(adata=adata, timepoint_obs=timepoint_obs, batch_obs=batch_obs, n_neighbors=n_neighbors, distance_metric=distance_metric, method=method, self_edge_filter=self_edge_filter, use_harmony=use_harmony, max_iter_harmony=max_iter_harmony, verbose=verbose)
     sc.tl.umap(adata)
 
-    # Remove adata_list from uns (temp objects)
-    if not keep_adata_list: del adata.uns['stitch']['adatas']
-    
     return adata
 
 
