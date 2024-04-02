@@ -95,27 +95,6 @@ def plot_stitch_hvgene_overlaps(adata, jaccard=True, cmap='jet', n_clust=3, zmax
             overlap[i, j] = intersection_size / denom if denom != 0 else 0
             overlap[j, i] = overlap[i, j]
 
-    # Previous version with boolean flags instead of gene names 
-    #
-    #hv_flags = []
-    #for j in range(adata.uns['stitch']['nTimepoints']):
-    #    hv_flags.append(adata.uns['stitch']['adatas'][j].var.highly_variable)
-    #
-    # Calculate overlap scores between boolean arrays for the hv gene sets
-    #n = len(hv_flags)
-    #overlap = np.zeros((n, n), dtype=float)
-    #for i in range(n):
-    #    for j in range(i+1, n):
-    #        intersection_size = np.sum(hv_flags[i] & hv_flags[j])
-    #        union_size = np.sum(hv_flags[i] | hv_flags[j])
-    #        min_group_size = np.min([np.sum(hv_flags[i]), np.sum(hv_flags[j])])
-    #        if jaccard == True:
-    #            denom = union_size
-    #        else:
-    #            denom = min_group_size                        
-    #        overlap[i, j] = intersection_size / denom if denom != 0 else 0
-    #        overlap[j, i] = overlap[i, j]
-
     # Perform clustering
     distances = 1 - overlap  # convert similarities to distances
     np.fill_diagonal(distances, 0) # Set diagonal elements to 0 to avoid numerical issues
@@ -164,7 +143,7 @@ def plot_stitch_hvgene_overlaps(adata, jaccard=True, cmap='jet', n_clust=3, zmax
     fig.show()
 
 
-def plot_stitch_pcgene_overlaps(adata, jaccard=True, cmap='jet', n_clust=3, n_pcs=300, zmax=None):
+def plot_stitch_pcgene_overlaps(adata, jaccard=True, cmap='jet', n_clust=3, zmax=None):
 
     labels = adata.uns['stitch']['timepoints'].astype('int').astype('str')
     pcgenes_list = adata.uns['stitch']['PCgenes']
@@ -294,9 +273,9 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='
 
   # Initialize results containers
   nHVgenes = []
-  HVgenes = []
   nSigPCs = []
-  PCgenes = []
+  HVgenes = {}
+  PCgenes = {}
   
   # Get dimensionality info for each timepoint
   with warnings.catch_warnings():
@@ -330,9 +309,11 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='
 
       # Organize results
       nHVgenes.append(np.sum(np.sum(adata_tmp.var['highly_variable'])))
-      HVgenes.append(list(adata_tmp.var[adata_tmp.var['highly_variable']==True].index))
       nSigPCs.append(adata_tmp.uns['n_sig_PCs'])
-      PCgenes.append(list(set(this_round_PC_genes)))
+      #HVgenes.append(list(adata_tmp.var[adata_tmp.var['highly_variable']==True].index))
+      HVgenes[n]=list(adata_tmp.var[adata_tmp.var['highly_variable']==True].index)
+      #PCgenes.append(list(set(this_round_PC_genes)))
+      PCgenes[n]=list(set(this_round_PC_genes))
 
       # Clean up objects from this round
       adata_list[n] = []
