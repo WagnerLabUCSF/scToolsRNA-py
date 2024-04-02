@@ -370,6 +370,7 @@ def stitch_get_graph(adata, timepoint_obs, batch_obs=None, n_neighbors=15, dista
         min_cells_per_timepoint = np.min(adata.obs[timepoint_obs].value_counts())
         adata_tmp = sc.pp.subsample(adata_tmp, n_obs=min_cells_per_timepoint, copy=True)
     adata_list.append(adata_tmp)
+    del adata_tmp
 
   # Set directionality of time projections
   if method=='forward':
@@ -418,7 +419,7 @@ def stitch_get_graph(adata, timepoint_obs, batch_obs=None, n_neighbors=15, dista
       sc.pp.pca(adata_ref, n_comps=adata_ref.uns['n_sig_PCs'], zero_center=True) # perform pca using the # of predetermined significant PCs
       if batch_obs is not None and use_harmony:
           with disable_logging():
-              sc.external.pp.harmony_integrate(adata_tmp, batch_obs, basis='X_pca', adjusted_basis='X_pca_harmony', max_iter_harmony=20, verbose=False)
+              sc.external.pp.harmony_integrate(adata_ref, batch_obs, basis='X_pca', adjusted_basis='X_pca_harmony', max_iter_harmony=20, verbose=False)
       
       # Embed adata_prj into the pca subspace defined by adata_ref
       sc.pp.neighbors(adata_ref, n_neighbors=n_neighbors, n_pcs=adata_ref.uns['n_sig_PCs'], metric=distance_metric, use_rep='X_pca')
