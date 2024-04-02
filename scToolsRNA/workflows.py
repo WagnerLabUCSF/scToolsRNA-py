@@ -22,18 +22,18 @@ def pp_raw2norm(adata, include_raw_layers=True, include_tpm_layers=True):
 	sc.pp.scale(adata, zero_center=False)
 
 
-def pp_get_embedding(adata, batch_key=None, n_neighbors=15, verbose=False, include_umap=True, include_leiden=True):
+def pp_norm2umap(adata, batch_key=None, n_neighbors=15, verbose=False, include_umap=True, include_leiden=True):
 
 	# Perform PCA with a specified number of dimensions
 	sc.pp.pca(adata, n_comps=adata.uns['n_sig_PCs'], zero_center=True)
 
 	# Generate neighbor graph, incorporating Harmony integration if necessary
-	if batch_key == None:
-		sc.pp.neighbors(adata, n_neighbors=n_neighbors, n_pcs=adata.uns['n_sig_PCs'], metric='euclidean', use_rep='X_pca')
-	else:
+	if batch_key is not None:
 		sc.external.pp.harmony_integrate(adata, batch_key, basis='X_pca', adjusted_basis='X_pca_harmony', max_iter_harmony=20, random_state=0, verbose=verbose)
 		sc.pp.neighbors(adata, n_neighbors=n_neighbors, n_pcs=adata.uns['n_sig_PCs'], metric='euclidean', use_rep='X_pca_harmony')
-
+	else:
+		sc.pp.neighbors(adata, n_neighbors=n_neighbors, n_pcs=adata.uns['n_sig_PCs'], metric='euclidean', use_rep='X_pca')
+	
 	# Generate UMAP embedding
 	if include_umap: sc.tl.umap(adata, n_components=2, spread=1)
 	
@@ -41,3 +41,5 @@ def pp_get_embedding(adata, batch_key=None, n_neighbors=15, verbose=False, inclu
 	if include_leiden: sc.tl.leiden(adata, resolution=1, key_added='leiden')
 
 
+# LEGACY ALIASES
+pp_get_embedding = pp_norm2umap

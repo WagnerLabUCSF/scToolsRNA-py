@@ -437,6 +437,5 @@ def get_sig_pcs(adata, n_iter = 3, nPCs_test = 300, threshold_method='95', show_
 
 
 # LEGACY ALIASES
-
 get_significant_pcs = get_sig_pcs
 
