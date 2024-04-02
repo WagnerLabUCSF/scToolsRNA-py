@@ -376,14 +376,12 @@ def stitch_get_graph(adata, timepoint_obs, batch_obs=None, n_neighbors=15, dista
       # Specify adatas for reference and projection
       if method=='forward':
         adata_ref = adata_t2
-        adata_ref.var['highly_variable'] = adata_ref.var_names.isin(HVgenes[n+1])
-        #adata_ref.var['highly_variable'] = HVgenes[n+1]
+        adata_ref.var['highly_variable'] = adata_ref.var_names.isin(HVgenes[str(n+1)])
         adata_ref.uns['n_sig_PCs'] = nSigPCs[n+1]
         adata_prj = adata_t1
       elif method=='reverse':
         adata_ref = adata_t1
-        adata_ref.var['highly_variable'] = adata_ref.var_names.isin(HVgenes[n])
-        #adata_ref.var['highly_variable'] = HVgenes[n]
+        adata_ref.var['highly_variable'] = adata_ref.var_names.isin(HVgenes[str(n)])
         adata_ref.uns['n_sig_PCs'] = nSigPCs[n]
         adata_prj = adata_t2
 
