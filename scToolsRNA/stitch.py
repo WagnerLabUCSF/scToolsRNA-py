@@ -472,14 +472,15 @@ def stitch(adata,
            vscore_min_pctl=90,                # vscore minimum percentile to call a gene as highly variable
            vscore_top_n_genes=3000,           # vscore number of highly variable genes to keep (only invoked if method = top_n_genes)
            get_sig_pcs_n_trials=1,            # number of random trials used to determine significant PCs
-           downsample_cells=False,            # whether or not to downsample all timepoints to the same # of cells
+           pca_top_n_genes=20,                # number of top loaded genes to keep from each significant PC (used for plotting only)
+           downsample_cells=False,            # whether to downsample all timepoints to the same # of cells
            n_neighbors=15,                    # number of outgoing nearest neighbors to retain for the stitch graph
            distance_metric='correlation',     # metric used to calculate nearest neighbor distances
            method='reverse',                  # directionality of the stitch method: forward | reverse
-           self_edge_filter=True,             # whether or not to filter self edges from adata_ref
-           use_harmony=True,                  # whether or not to use harmony for batch correction (only invoked if batch_obs is not None)
+           self_edge_filter=True,             # whether to filter self edges from adata_ref
+           use_harmony=True,                  # whether to use harmony batch correction within each timepoint pair (only invoked if batch_obs exists)
            max_iter_harmony=20,               # maximum number of harmony iterations (if used)
-           verbose=True):
+           verbose=True):                     # print additional details to screen 
 
     # Estimate dimensionality of each timepoint
     stitch_get_dims(adata=adata, timepoint_obs=timepoint_obs, batch_obs=batch_obs, vscore_filter_method=vscore_filter_method, vscore_min_pctl=vscore_min_pctl, vscore_top_n_genes=vscore_top_n_genes, get_sig_pcs_n_trials=get_sig_pcs_n_trials, downsample_cells=downsample_cells, verbose=verbose)
