@@ -415,7 +415,7 @@ def stitch_get_graph(adata, timepoint_obs, batch_obs=None, n_neighbors=15, dista
       pp_raw2norm(adata_prj, include_raw_layers=False, include_tpm_layers=False)
 
       # Perform PCA on reference timepoint
-      sc.pp.pca(adata_ref, n_comps=adata_tmp.uns['n_sig_PCs'], zero_center=True) # perform pca using the # of predetermined significant PCs
+      sc.pp.pca(adata_ref, n_comps=adata_ref.uns['n_sig_PCs'], zero_center=True) # perform pca using the # of predetermined significant PCs
       if batch_obs is not None and use_harmony:
           with disable_logging():
               sc.external.pp.harmony_integrate(adata_tmp, batch_obs, basis='X_pca', adjusted_basis='X_pca_harmony', max_iter_harmony=20, verbose=False)
