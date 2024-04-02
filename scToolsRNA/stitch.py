@@ -282,7 +282,7 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='
     warnings.simplefilter('ignore')
     for n in range(n_timepoints):
       
-      if verbose: print('Computing gene vscores and PC embeddings for:', timepoint_list[n])
+      if verbose: print('Computing gene vscores and significant PCA dimensions for:', timepoint_list[n])
 
       # Specify the adata for this timepoint
       adata_tmp = adata_list[n] # .copy()
@@ -367,7 +367,7 @@ def stitch_get_graph(adata, timepoint_obs, batch_obs=None, n_neighbors=15, dista
     warnings.simplefilter('ignore')
     for n in range(n_stitch_rounds):
       
-      if verbose: print('Stitching Timepoints:', timepoint_list[n], arrow_str, timepoint_list[n+1])
+      if verbose: print('Stitching timepoints:', timepoint_list[n], arrow_str, timepoint_list[n+1])
       
       # Load previously processed adata_t1 and adata_t2 for this round
       adata_t1 = adata_list[n].copy()
@@ -481,7 +481,7 @@ def stitch(adata,
            verbose=True):                     # print additional details to screen 
 
     # Estimate dimensionality of each timepoint
-    stitch_get_dims(adata=adata, timepoint_obs=timepoint_obs, batch_obs=batch_obs, vscore_filter_method=vscore_filter_method, vscore_min_pctl=vscore_min_pctl, vscore_top_n_genes=vscore_top_n_genes, sig_pcs_n_trials=sig_pcs_n_trials, sig_pcs_top_n_genes=sig_pcs_top_n_genes, downsample_cells=downsample_cells, verbose=verbose)
+    adata = stitch_get_dims(adata=adata, timepoint_obs=timepoint_obs, batch_obs=batch_obs, vscore_filter_method=vscore_filter_method, vscore_min_pctl=vscore_min_pctl, vscore_top_n_genes=vscore_top_n_genes, sig_pcs_n_trials=sig_pcs_n_trials, sig_pcs_top_n_genes=sig_pcs_top_n_genes, downsample_cells=downsample_cells, verbose=verbose)
     
     # Dimensionality plots
     plot_stitch_dims(adata)
@@ -489,7 +489,7 @@ def stitch(adata,
     plot_stitch_pcgene_overlaps(adata, cmap='jet')
     
     # Build and embed the stitch graph
-    stitch_get_graph(adata=adata, timepoint_obs=timepoint_obs, batch_obs=batch_obs, n_neighbors=n_neighbors, distance_metric=distance_metric, method=method, self_edge_filter=self_edge_filter, use_harmony=use_harmony, max_iter_harmony=max_iter_harmony, downsample_cells=downsample_cells, verbose=verbose)
+    adata = stitch_get_graph(adata=adata, timepoint_obs=timepoint_obs, batch_obs=batch_obs, n_neighbors=n_neighbors, distance_metric=distance_metric, method=method, self_edge_filter=self_edge_filter, use_harmony=use_harmony, max_iter_harmony=max_iter_harmony, downsample_cells=downsample_cells, verbose=verbose)
     sc.tl.umap(adata)
 
     return adata
