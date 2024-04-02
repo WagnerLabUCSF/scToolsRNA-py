@@ -311,9 +311,9 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='
       nHVgenes.append(np.sum(np.sum(adata_tmp.var['highly_variable'])))
       nSigPCs.append(adata_tmp.uns['n_sig_PCs'])
       #HVgenes.append(list(adata_tmp.var[adata_tmp.var['highly_variable']==True].index))
-      HVgenes[n]=list(adata_tmp.var[adata_tmp.var['highly_variable']==True].index)
+      HVgenes[str(n)]=list(adata_tmp.var[adata_tmp.var['highly_variable']==True].index)
       #PCgenes.append(list(set(this_round_PC_genes)))
-      PCgenes[n]=list(set(this_round_PC_genes))
+      PCgenes[(str(n)]=list(set(this_round_PC_genes))
 
       # Clean up objects from this round
       adata_list[n] = []
