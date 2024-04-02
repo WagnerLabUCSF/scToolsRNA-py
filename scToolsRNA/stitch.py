@@ -84,10 +84,10 @@ def plot_stitch_hvgene_overlaps(adata, jaccard=True, cmap='jet', n_clust=3, zmax
     overlap = np.zeros((n, n), dtype=float)
     for i in range(n):
         for j in range(i+1, n):
-            intersection = list(set(hvgene_list[i]) & set(hvgene_list[j])) #map(eq, hvgene_list[i], hvgene_list[j])
+            intersection = list(set(hvgene_list[str(i)]) & set(hvgene_list[str(j)])) #map(eq, hvgene_list[str(i)], hvgene_list[str(j)])
             intersection_size = len(intersection)
-            union_size = len(hvgene_list[i]) + len(hvgene_list[j])
-            min_group_size = np.min([len(hvgene_list[i]), len(hvgene_list[j])])
+            union_size = len(hvgene_list[str(i)]) + len(hvgene_list[str(j)])
+            min_group_size = np.min([len(hvgene_list[str(i)]), len(hvgene_list[str(j)])])
             if jaccard == True:
                 denom = union_size
             else:
@@ -153,10 +153,10 @@ def plot_stitch_pcgene_overlaps(adata, jaccard=True, cmap='jet', n_clust=3, zmax
     overlap = np.zeros((n, n), dtype=float)
     for i in range(n):
         for j in range(i+1, n):
-            intersection = list(set(pcgenes_list[i]) & set(pcgenes_list[j])) #map(eq, pcgenes_list[i], pcgenes_list[j])
+            intersection = list(set(pcgenes_list[str(i)]) & set(pcgenes_list[str(j)])) #map(eq, pcgenes_list[str(i)], pcgenes_list[str(j)])
             intersection_size = len(intersection)
-            union_size = len(pcgenes_list[i]) + len(pcgenes_list[j])
-            min_group_size = np.min([len(pcgenes_list[i]), len(pcgenes_list[j])])
+            union_size = len(pcgenes_list[str(i)]) + len(pcgenes_list[str(j)])
+            min_group_size = np.min([len(pcgenes_list[str(i)]), len(pcgenes_list[str(j)])])
             if jaccard == True:
                 denom = union_size
             else:
