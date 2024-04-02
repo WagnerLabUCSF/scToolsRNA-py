@@ -301,15 +301,13 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='
       this_round_PC_loadings = adata_tmp.varm['PCs']
       this_round_PC_genes = []
       for pc in range(adata_tmp.uns['n_sig_PCs']): # Only use significant PCs
-          this_round_PC_gene_ind = list(np.argsort(np.absolute((this_round_PC_loadings[:,pc])))[::-1][:pca_top_n_genes]) 
+          this_round_PC_gene_ind = list(np.argsort(np.absolute((this_round_PC_loadings[:,pc])))[::-1][:sig_pcs_top_n_genes]) 
           this_round_PC_genes.extend(adata.var_names[this_round_PC_gene_ind])
 
       # Organize results
       nHVgenes.append(np.sum(np.sum(adata_tmp.var['highly_variable'])))
       nSigPCs.append(adata_tmp.uns['n_sig_PCs'])
-      #HVgenes.append(list(adata_tmp.var[adata_tmp.var['highly_variable']==True].index))
       HVgenes[str(n)]=list(adata_tmp.var[adata_tmp.var['highly_variable']==True].index)
-      #PCgenes.append(list(set(this_round_PC_genes)))
       PCgenes[str(n)]=list(set(this_round_PC_genes))
 
       # Clean up objects from this round
