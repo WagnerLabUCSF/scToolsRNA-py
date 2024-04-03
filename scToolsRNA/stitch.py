@@ -237,13 +237,30 @@ def plot_stitch_dims(adata):
     plt.show()
 
 
+def plot_stitch_hvgenes_cumulative(adata):
+
+    timepoint_values = adata.uns['stitch']['timepoints'].astype('int')
+    nHVgenes_cumul = adata.uns['stitch']['nHVgenes_cumul']
+    nHVgenes_cumul_shared = adata.uns['stitch']['nHVgenes_cumul_shared']
+
+    plt.plot(timepoint_values[:], nHVgenes_cumul[:], color='b', linewidth=2, label='Cumulative')
+    plt.plot(timepoint_values[1:], nHVgenes_cumul_shared[1:], color='r', linewidth=2, label='Cumulative (shared)')
+    plt.ylabel('# Highly Variable Genes', color='k')
+    plt.xlabel('Timepoint Group (hpf)', color='k')
+    plt.legend()
+    plt.yscale('log')
+    plt.show()
+
+
 def stitch_get_dims_df(adata):
     
-    stitch_dims_df = pd.DataFrame({'nHVgenes': adata.uns['stitch']['nHVgenes'], 'nSigPCs': adata.uns['stitch']['nSigPCs']},
-                        index=adata.uns['stitch']['timepoints'])
+    stitch_dims_df = pd.DataFrame({'nHVgenes': adata.uns['stitch']['nHVgenes'], 
+                                   'nSigPCs': adata.uns['stitch']['nSigPCs']},
+                                   'nHVgenes_cumulative': adata.uns['stitch']['nHVgenes_cumul'], 
+                                   'nHVgenes_cumulative_shared': adata.uns['stitch']['nHVgenes_cumul_shared'], 
+                                    index=adata.uns['stitch']['timepoints'])
     
     return stitch_dims_df
-
 
 
 ### CORE STITCH METHODS ###
@@ -272,10 +289,16 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='
     adata_list.append(adata_tmp)
 
   # Initialize results containers
-  nHVgenes = []
-  nSigPCs = []
-  HVgenes = {}
-  PCgenes = {}
+  nHVgenes = []                     # list containing numbers of HV genes identified for each timepoint
+  nSigPCs = []                      # list containing numbers of significant PCA dimensions identified for each timepoint
+  HVgenes = {}                      # dictionary containing HV gene names for each timepoint
+  PCgenes = {}                      # dictionary containing top-loaded PC gene names for each timepoint
+  HVgenes_cumul_redundant = []      # combined list of HV genes from all timepoints 
+  HVgenes_cumul = []                # combined list of HV genes from all timepoints with duplicates removed
+  HVgenes_cumul_shared = []         # combined list of HV genes shared between at least 2 timepoints with duplicates removed
+  nHVgenes_cumul = []               # list containing cumulative sum of unique HV genes identified for each successive timepoint
+  nHVgenes_cumul_shared = []        # list containing cumulative sum of shared HV genes identified for each successive timepoint
+  
   
   # Get dimensionality info for each timepoint
   with warnings.catch_warnings():
@@ -310,6 +333,14 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='
       HVgenes[str(n)]=list(adata_tmp.var[adata_tmp.var['highly_variable']==True].index)
       PCgenes[str(n)]=list(set(this_round_PC_genes))
 
+      # Tabulate # of unique and shared HV genes (cumulative over time)
+      HVgenes_cumul_redundant.extend(HVgenes[str(n)])
+      HVgenes_cumul = list(set(HVgenes_cumul_redundant))
+      nHVgenes_cumul.append(len(HVgenes_cumul))
+      counts = pd.Series(HVgenes_cumul_redundant).value_counts()
+      HVgenes_cumul_shared = counts[counts >= 2].index.tolist()
+      nHVgenes_cumul_shared.append(len(HVgenes_cumul_shared))
+
       # Clean up objects from this round
       adata_list[n] = []
       gc.collect()
@@ -318,7 +349,9 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='
     adata.uns['stitch'] = {'timepoint_obs': timepoint_obs, 'batch_obs': batch_obs, 
                            'vscore_filter_method': vscore_filter_method, 'vscore_min_pctl': vscore_min_pctl, 
                            'timepoints': timepoint_list, 'nTimepoints': n_timepoints, 'nHVgenes': nHVgenes, 
-                           'HVgenes': HVgenes, 'nSigPCs': nSigPCs, 'PCgenes': PCgenes, 'downsample_cells': downsample_cells} 
+                           'HVgenes': HVgenes, 'HVgenes_combined': HVgenes_cumul, 'HVgenes_shared': HVgenes_cumul_shared,
+                           'nHVgenes_cumul': nHVgenes_cumul, 'nHVgenes_cumul_shared': nHVgenes_cumul_shared,
+                           'nSigPCs': nSigPCs, 'PCgenes': PCgenes, 'downsample_cells': downsample_cells} 
                          
   return adata
 
