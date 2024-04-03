@@ -232,7 +232,7 @@ def plot_stitch_dims(adata):
     ax2.plot(df['Timepoint'], df['nSigPCs'], color='b', linewidth=2)
     ax2.set_ylabel('# Significant PC Dimensions', color='b')
     ax2.tick_params(axis='y', labelcolor='b')
-    ax2.set_yscale('linear')
+    ax2.set_yscale('log')
 
     plt.show()
 
@@ -314,11 +314,11 @@ def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='
       adata_list[n] = []
       gc.collect()
 
-  # Save results to dictionary
-  adata.uns['stitch'] = {'timepoint_obs': timepoint_obs, 'batch_obs': batch_obs, 
-                         'vscore_filter_method': vscore_filter_method, 'vscore_min_pctl': vscore_min_pctl, 
-                         'timepoints': timepoint_list, 'nTimepoints': n_timepoints, 'nHVgenes': nHVgenes, 
-                         'HVgenes': HVgenes, 'nSigPCs': nSigPCs, 'PCgenes': PCgenes, 'downsample_cells': downsample_cells} 
+    # Save results to dictionary
+    adata.uns['stitch'] = {'timepoint_obs': timepoint_obs, 'batch_obs': batch_obs, 
+                           'vscore_filter_method': vscore_filter_method, 'vscore_min_pctl': vscore_min_pctl, 
+                           'timepoints': timepoint_list, 'nTimepoints': n_timepoints, 'nHVgenes': nHVgenes, 
+                           'HVgenes': HVgenes, 'nSigPCs': nSigPCs, 'PCgenes': PCgenes, 'downsample_cells': downsample_cells} 
                          
   return adata
 
@@ -486,12 +486,13 @@ def stitch(adata,
     plot_stitch_hvgene_overlaps(adata, cmap='jet')
     plot_stitch_pcgene_overlaps(adata, cmap='jet')
     
-    # Build and embed the stitch graph
+    # Build the stitch graph
     adata = stitch_get_graph(adata=adata, timepoint_obs=timepoint_obs, batch_obs=batch_obs, n_neighbors=n_neighbors, distance_metric=distance_metric, method=method, self_edge_filter=self_edge_filter, use_harmony=use_harmony, max_iter_harmony=max_iter_harmony, downsample_cells=downsample_cells, verbose=verbose)
+    
+    # Generate UMAP embedding
     sc.tl.umap(adata)
 
     return adata
-
 
 
 
@@ -627,7 +628,7 @@ def stitch_orig(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_m
   adata.obsp['connectivities'] = get_connectivities_from_dist_csr(adata.obsp['distances'], n_neighbors)
 
   # Save neighbor graph settings for downstream steps
-  adata.obsm['X_stitch_dummy'] = np.zeros((adata.shape[0], 50)) # empty X for initializing umap later on
+  adata.obsm['X_stitch_init'] = np.zeros((adata.shape[0], 50)) # empty X for initializing umap later on
   adata.uns['neighbors'] = {'connectivities_key': 
                             'connectivities', 'distances_key': 'distances',
                             'params': {'method': 'umap',
@@ -635,7 +636,7 @@ def stitch_orig(adata, timepoint_obs, batch_obs=None, n_neighbors=15, distance_m
                             'n_neighbors': n_neighbors,
                             'n_pcs': 50,
                             'random_state': 0,
-                            'use_rep': 'X_stitch_dummy'}}
+                            'use_rep': 'X_stitch_init'}}
   
   adata.uns['stitch_settings'] = {'timepoint_obs': timepoint_obs, 'batch_obs': batch_obs, 'n_neighbors': n_neighbors,'distance_metric': distance_metric,
                                   'vscore_min_pctl': vscore_min_pctl, 'vscore_filter_method': vscore_filter_method, 'method': method,
