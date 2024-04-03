@@ -17,7 +17,7 @@ from matplotlib.animation import FuncAnimation
 
 def plot_umap3d(adata, color, window_height=1000):
   
-    # Generate or use existing 3D UMAP coordinates in obsm; preserve 2D coordinates if needed
+    # Generate or use existing 3D UMAP coordinates in obsm; if present, make a backup copy of 2D UMAP coordinates
     if 'X_umap_3d' not in adata.obsm:        
         calc_umap3d = True
         if 'X_umap' in adata.obsm:
