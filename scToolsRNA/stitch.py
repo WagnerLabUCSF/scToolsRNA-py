@@ -255,9 +255,9 @@ def plot_stitch_hvgenes_cumulative(adata):
 def stitch_get_dims_df(adata):
     
     stitch_dims_df = pd.DataFrame({'nHVgenes': adata.uns['stitch']['nHVgenes'], 
-                                   'nSigPCs': adata.uns['stitch']['nSigPCs']},
+                                   'nSigPCs': adata.uns['stitch']['nSigPCs'],
                                    'nHVgenes_cumulative': adata.uns['stitch']['nHVgenes_cumul'], 
-                                   'nHVgenes_cumulative_shared': adata.uns['stitch']['nHVgenes_cumul_shared'], 
+                                   'nHVgenes_cumulative_shared': adata.uns['stitch']['nHVgenes_cumul_shared']}, 
                                     index=adata.uns['stitch']['timepoints'])
     
     return stitch_dims_df
