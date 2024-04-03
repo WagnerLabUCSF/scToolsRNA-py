@@ -188,7 +188,7 @@ def get_variable_genes(adata, batch_key=None, filter_method='all', top_n_genes=3
     within_batch_hv_genes, hv_batch_count = np.unique(within_batch_hv_genes, return_counts=True)
     
     # perform hv_gene filtering
-    if filter_method is 'top_n_genes':
+    if filter_method == 'top_n_genes':
         hv_genes = adata.var['vscore'].sort_values(ascending=False)[0:top_n_genes].index
     else:
         hv_genes = within_batch_hv_genes[hv_batch_count > count_thresh]
