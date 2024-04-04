@@ -243,12 +243,12 @@ def plot_stitch_hvgenes_cumulative(adata):
     nHVgenes_cumul = adata.uns['stitch']['nHVgenes_cumul']
     nHVgenes_cumul_shared = adata.uns['stitch']['nHVgenes_cumul_shared']
 
-    plt.plot(timepoint_values[:], nHVgenes_cumul[:], color='b', linewidth=2, label='Cumulative')
-    plt.plot(timepoint_values[1:], nHVgenes_cumul_shared[1:], color='r', linewidth=2, label='Cumulative (shared)')
+    plt.plot(timepoint_values[:].astype(int), nHVgenes_cumul[:], color='b', linewidth=2, label='Cumulative')
+    plt.plot(timepoint_values[1:].astype(int), nHVgenes_cumul_shared[1:], color='r', linewidth=2, label='Cumulative (shared)')
     plt.ylabel('# Highly Variable Genes', color='k')
     plt.xlabel('Timepoint Group (hpf)', color='k')
     plt.legend()
-    plt.yscale('log')
+    #plt.yscale('log')
     plt.show()
 
 
