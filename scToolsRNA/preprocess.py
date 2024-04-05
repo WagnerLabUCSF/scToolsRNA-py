@@ -12,19 +12,6 @@ import matplotlib.pyplot as plt
 # DATA PREPROCESSING & QUALITY FILTERING
 
 
-def adata2tpt(adata):
-
-    # Perform TPT Normalization on X matrix of an adata object
-    adata_tpt = adata.copy()
-    adata_tpt.X = adata_tpt.layers['raw_nolog']
-    sc.pp.normalize_total(adata_tpt, target_sum=1e4, inplace=True) 
-    sc.pp.log1p(adata_tpt)
-    
-    # Confirm TPT
-    #print(adata_tpt.X.expm1().sum(axis = 1))
-    
-    return adata_tpt
-
 
 def get_sampling_stats(adata, groupby=''):
 
