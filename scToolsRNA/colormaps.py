@@ -1,3 +1,4 @@
+import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 import matplotlib.colors as mcolors
