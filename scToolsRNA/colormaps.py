@@ -23,6 +23,11 @@ def get_custom_cmap(color_list):
     return custom_cmap
 
 
+# For large sets of categoricals
+css_colors = list(matplotlib.colors.CSS4_COLORS.values())
+xkcd_colors = list(matplotlib.colors.XKCD_COLORS.values())
+
+# Matlab's "parula" colormap
 parula_cm = [[0.2081, 0.1663, 0.5292],
              [0.2116238095, 0.1897809524, 0.5776761905],
              [0.212252381, 0.2137714286, 0.6269714286],
