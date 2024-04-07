@@ -511,14 +511,15 @@ def stitch(adata,
 
     # Estimate dimensionality of each timepoint
     adata = stitch_get_dims(adata=adata, timepoint_obs=timepoint_obs, batch_obs=batch_obs, vscore_filter_method=vscore_filter_method, vscore_min_pctl=vscore_min_pctl, vscore_top_n_genes=vscore_top_n_genes, sig_pcs_n_trials=sig_pcs_n_trials, sig_pcs_top_n_genes=sig_pcs_top_n_genes, downsample_cells=downsample_cells, verbose=verbose)
-    
+
     # Dimensionality plots
     plot_stitch_dims(adata)
     plot_stitch_hvgene_overlaps(adata, cmap='jet')
     plot_stitch_pcgene_overlaps(adata, cmap='jet')
-    
+
     # Build the stitch graph
     adata = stitch_get_graph(adata=adata, timepoint_obs=timepoint_obs, batch_obs=batch_obs, n_neighbors=n_neighbors, distance_metric=distance_metric, method=method, self_edge_filter=self_edge_filter, use_harmony=use_harmony, max_iter_harmony=max_iter_harmony, downsample_cells=downsample_cells, verbose=verbose)
+
 
     return adata
 
