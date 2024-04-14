@@ -261,6 +261,7 @@ def stitch_get_dims_df(adata):
                           index=adata.uns['stitch']['timepoints'])
 
 
+
 ### CORE STITCH METHODS ###
 
 def stitch_get_dims(adata, timepoint_obs, batch_obs=None, vscore_filter_method='majority', vscore_min_pctl=90, vscore_top_n_genes=3000, sig_pcs_n_trials=1, sig_pcs_top_n_genes=20, downsample_cells=False, verbose=True):
