@@ -4,6 +4,7 @@ import scipy
 
 
 
+
 # SPARSE MATRICES
 
 
@@ -25,6 +26,24 @@ def convert_to_dense(X):
   if scipy.sparse.issparse(X):
     X=X.todense()
   return X
+
+
+def filter_csr(matrix, keep=10):
+    rows = matrix.shape[0]
+    new_data = []
+    new_indices = []
+    new_indptr = [0]
+
+    for i in range(rows):
+        row_data = matrix.data[matrix.indptr[i]:matrix.indptr[i+1]]
+        row_indices = matrix.indices[matrix.indptr[i]:matrix.indptr[i+1]]
+        smallest_indices = np.argpartition(row_data, keep)[:keep]
+        
+        new_data.extend(row_data[smallest_indices])
+        new_indices.extend(row_indices[smallest_indices])
+        new_indptr.append(len(new_data))
+        
+    return scipy.sparse.csr_matrix((new_data, new_indices, new_indptr), shape=matrix.shape)
 
 
 
