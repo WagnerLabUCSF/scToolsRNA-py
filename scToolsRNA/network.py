@@ -10,7 +10,7 @@ import igraph as ig
 
 def export_to_graphml(adata, filename='test.graphml', directed=None):    
 
-    adjacency = adata.uns['neighbors']['connectivities']
+    adjacency = adata.obsp['connectivities']
 
     sources, targets = adjacency.nonzero()
     weights = adjacency[sources, targets]
