@@ -207,7 +207,7 @@ def get_deg_table(adata, ngenes_csv=100, ngenes_disp=20, thresh_pv=0.05, thresh_
       return df
     
     
-    
+get_rank_genes_groups_table = get_deg_table
     
 
 
