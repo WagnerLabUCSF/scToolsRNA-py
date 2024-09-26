@@ -11,4 +11,3 @@ from .sparse import *
 from .trajectories import *
 from .colormaps import *
 from .workflows import *
-from .stitch import *
