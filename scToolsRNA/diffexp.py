@@ -41,7 +41,7 @@ def get_pydeseq2_sample_contrasts(adata, cluster_obs, sample_obs, condition_obs,
             adata_subset_next = adata_subset[adata_subset.obs[sample_obs] == sample]
             del adata_subset_next.X
             adata_subset_next.X = adata_subset_next.layers['raw_nolog'] # make sure to use raw counts data
-            pb_adata_next = sc.AnnData(X = adata_subset_next.X.sum(axis = 0), var = adata_subset_next.var[[]])
+            pb_adata_next = sc.AnnData(X = np.array(adata_subset_next.X.sum(axis = 0)), var = adata_subset_next.var[[]])
             pb_adata_next.obs_names = [sample]
             pb_adata_next.obs[condition_obs] = adata_subset_next.obs[condition_obs].iloc[0]
             pb_adata_list.append(pb_adata_next)
