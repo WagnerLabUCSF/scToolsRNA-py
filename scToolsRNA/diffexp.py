@@ -55,7 +55,7 @@ def get_pydeseq2_sample_contrasts(adata, cluster_obs, sample_obs, condition_obs,
                            design_factors = 'condition',
                            quiet = True)
         dds.deseq2();
-        stat_res = DeseqStats(dds, n_cpus=8, contrast=('condition', condition_list[0], condition_list[1]));
+        stat_res = DeseqStats(dds, contrast=('condition', condition_list[0], condition_list[1]));
         stat_res.summary();
 
         # Sort the pyDESeq2 results table
