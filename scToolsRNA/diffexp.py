@@ -167,7 +167,6 @@ def plot_pydeseq2_cluster_sensitivities(adata, cluster_obs, sample_obs, conditio
         return ratios_df, power_df
 
 
-
 def get_deg_table(adata, ngenes_csv=100, ngenes_disp=20, thresh_pv=0.05, thresh_logfc=1, filt_hv=False, return_dict=False):
     
     # Uses results from rank_genes_groups
