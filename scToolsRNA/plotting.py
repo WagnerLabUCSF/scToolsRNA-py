@@ -19,6 +19,29 @@ from matplotlib.lines import Line2D
 ###
 
 
+def plot_3d_embedding(df_xyz, color, dims_to_plot=[0,1,2]):
+
+  fig = px.scatter_3d(df_xyz,
+                      x=dims_to_plot[0], y=dims_to_plot[1], z=dims_to_plot[2],
+                      color=color,
+                      size_max=12, size=np.repeat(1,len(adata)),
+                      opacity=1,
+                      height=1000,
+                      color_discrete_sequence=sc.pl.palettes.default_20,
+                      color_continuous_scale=px.colors.sequential.Viridis)
+
+  fig.update_layout(scene_dragmode='orbit',
+                    scene = dict(xaxis = dict(visible=False),
+                                yaxis = dict(visible=False),
+                                zaxis = dict(visible=False)),
+                    legend_title_text='',
+                    coloraxis_colorbar_title_text = 'log<br>counts',
+                    showlegend=True,
+                    coloraxis_colorbar_thickness=10)
+
+  fig.update_traces(marker=dict(line=dict(width=0)))
+
+  fig.show()
 
 
 def plot_umap3d(adata, color, window_height=1000):
@@ -41,7 +64,7 @@ def plot_umap3d(adata, color, window_height=1000):
     fig = px.scatter_3d(pd.DataFrame(adata.obsm['X_umap_3d']), 
                       x=0, y=1, z=2, 
                       size_max=8, size=np.repeat(1,len(adata)), 
-                      opacity=1, color=sc.get.obs_df(adata, color, layer='raw').tolist(), 
+                      opacity=1, color=sc.get.obs_df(adata, color, layer='raw').values.flatten(),
                       color_discrete_sequence=sc.pl.palettes.default_20, color_continuous_scale=px.colors.sequential.Viridis,
                       height=window_height)
   
