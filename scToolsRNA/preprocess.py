@@ -31,7 +31,7 @@ def get_sampling_stats(adata, groupby=''):
     return df
 
 
-def filter_abundant_barcodes(adata, filter_cells=False, threshold=1000, library_id='', save_path='./figures/'):
+def filter_abundant_barcodes(adata, filter_cells=False, threshold=1000, upper_threshold=np.inf, library_id='', save_path='./figures/'):
     '''
     Plots a weighted histogram of transcripts per cell barcode for guiding the
     placement of a filtering threshold. Returns a filtered version of adata.  
@@ -51,7 +51,7 @@ def filter_abundant_barcodes(adata, filter_cells=False, threshold=1000, library_
     genes = np.array(adata.X.astype(bool).sum(axis=1))
     adata.obs['total_counts'] = counts
     adata.obs['n_genes_by_counts'] = genes
-    ix = counts >= threshold
+    ix = np.where((counts > threshold) & (counts < upper_threshold), True, False)
 
     # Plot and format a weighted cell-barcode counts histogram
     sc.set_figure_params(dpi=100, figsize=[4,4], fontsize=12)
@@ -64,8 +64,9 @@ def filter_abundant_barcodes(adata, filter_cells=False, threshold=1000, library_
     ax.set_title(library_id)
     ax.text(0.99,0.95, str(np.sum(ix)) + '/' + str(counts.shape[0]) + ' cells retained', ha='right', va='center', transform=ax.transAxes)
 
-    # Overlay the counts threshold as a vertical line
-    ax.plot([threshold, threshold], ax.get_ylim())
+    # Overlay the counts thresholds as vertical lines
+    ax.plot([upper_threshold, upper_threshold], [0, ax.get_ylim()[1]])
+    ax.plot([threshold, threshold], [0, ax.get_ylim()[1]])
 
     # Save figure to file
     fig.tight_layout()
@@ -105,8 +106,6 @@ def filter_mito(adata, filter_cells=False, upper_threshold=100, lower_threshold=
     counts = adata.obs['pct_counts_mito']
     ix = np.where((counts > lower_threshold) & (counts < upper_threshold), True, False)
     
-    #ix1 = counts < upper_threshold && counts > lower_threshold
-
     # Plot and format a weighted mito counts histogram
     sc.set_figure_params(dpi=100, figsize=[4,4], fontsize=12)
     fig = plt.figure()
