@@ -19,12 +19,12 @@ from matplotlib.lines import Line2D
 ###
 
 
-def plot_3d_embedding(df_xyz, color, dims_to_plot=[0,1,2]):
+def plot_3d_embedding(plot_data_df, color_data, dims_to_plot=[0,1,2]):
 
-  fig = px.scatter_3d(df_xyz,
+  fig = px.scatter_3d(plot_data_df,
                       x=dims_to_plot[0], y=dims_to_plot[1], z=dims_to_plot[2],
-                      color=color,
-                      size_max=12, size=np.repeat(1,len(adata)),
+                      color=color_data,
+                      size_max=12, size=np.repeat(1,len(plot_data_df)),
                       opacity=1,
                       height=1000,
                       color_discrete_sequence=sc.pl.palettes.default_20,
