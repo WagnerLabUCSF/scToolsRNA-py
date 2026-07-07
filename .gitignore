@@ -1,1 +1,17 @@
+# macOS
 *.DS_Store
+
+# Python build / packaging artifacts
+build/
+dist/
+*.egg-info/
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+.venv/
+venv/
+
+# Caches
+.ipynb_checkpoints/
+.pytest_cache/

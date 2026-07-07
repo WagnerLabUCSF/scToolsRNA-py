@@ -7,14 +7,14 @@ import logging
 import gc
 
 from contextlib import contextmanager
-from umap.umap_ import fuzzy_simplicial_set
 import scipy.cluster.hierarchy as sch
 from scipy.spatial.distance import squareform
 
-import plotly.express as px
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 import matplotlib.cm as cm
+
+# umap-learn and plotly are imported lazily inside the functions that need them
+# (graph construction and interactive overlap heatmaps) so that ``import
+# scToolsRNA`` stays fast and does not hard-require them at import time.
 
 from .dimensionality import *
 from .workflows import *
@@ -59,6 +59,7 @@ def get_knn_ind_dist_from_csr(D: scipy.sparse.csr_matrix, n_neighbors: int):
 
 
 def get_connectivities_from_dist_csr(D_csr, n_neighbors):
+  from umap.umap_ import fuzzy_simplicial_set
   # Extract knn indices and distances from sparse matrix
   n_nodes = D_csr.shape[0]
   knn_indices, knn_distances = get_knn_ind_dist_from_csr(D_csr, n_neighbors)
@@ -76,6 +77,9 @@ def get_connectivities_from_dist_csr(D_csr, n_neighbors):
 ### DIAGNOSTICS ###
 
 def plot_stitch_hvgene_overlaps(adata, jaccard=True, cmap='jet', n_clust=3, zmax=None):
+
+    import plotly.graph_objects as go
+    from plotly.subplots import make_subplots
 
     labels = adata.uns['stitch']['timepoints'].astype('int').astype('str')
     hvgene_list = adata.uns['stitch']['HVgenes']
@@ -145,6 +149,9 @@ def plot_stitch_hvgene_overlaps(adata, jaccard=True, cmap='jet', n_clust=3, zmax
 
 
 def plot_stitch_pcgene_overlaps(adata, jaccard=True, cmap='jet', n_clust=3, zmax=None):
+
+    import plotly.graph_objects as go
+    from plotly.subplots import make_subplots
 
     labels = adata.uns['stitch']['timepoints'].astype('int').astype('str')
     pcgenes_list = adata.uns['stitch']['PCgenes']

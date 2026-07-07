@@ -1,0 +1,67 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sctoolsrna"
+version = "0.1.0"
+description = "A workbench of general-purpose single-cell RNA-seq analysis tools from the Wagner Lab (UCSF)"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+
+authors = [
+  { name = "Daniel Wagner", email = "Daniel.Wagner@ucsf.edu" }
+]
+
+keywords = ["single-cell", "rna-seq", "scanpy", "anndata", "bioinformatics"]
+
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Science/Research",
+  "Topic :: Scientific/Engineering :: Bio-Informatics",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+]
+
+# All runtime dependencies are installed with the package. Individual modules
+# still import them lazily (inside functions) so that importing scToolsRNA stays
+# fast and a missing optional system library does not break the whole package.
+dependencies = [
+  "anndata>=0.10",
+  "scanpy>=1.9",
+  "numpy>=1.24",
+  "pandas>=2.0,<3.0",
+  "scipy>=1.10",
+  "scikit-learn>=1.3",
+  "matplotlib>=3.7",
+  "seaborn>=0.12",
+  "plotly>=5.15",
+  "adjustText>=0.8",
+  "faiss-cpu>=1.8",
+  "pydeseq2>=0.4",
+  "scrublet>=0.2.3",
+  "umap-learn>=0.5",
+  "harmonypy>=0.0.9",
+  "igraph>=0.11",
+  "leidenalg>=0.10",
+  "tqdm>=4.66",
+]
+
+[project.optional-dependencies]
+docs = [
+  "sphinx>=7.0",
+  "furo",
+]
+
+[project.urls]
+Homepage = "https://github.com/WagnerLabUCSF/scToolsRNA-py"
+Issues = "https://github.com/WagnerLabUCSF/scToolsRNA-py/issues"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]

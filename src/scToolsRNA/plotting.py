@@ -5,7 +5,10 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import scanpy as sc
-import plotly.express as px
+
+# plotly is imported lazily inside the functions that use it (interactive 3D
+# plots) so that ``import scToolsRNA`` stays fast and matplotlib-only workflows
+# do not require plotly to be importable.
 
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.animation import FuncAnimation
@@ -20,6 +23,8 @@ from matplotlib.lines import Line2D
 
 
 def plot_3d_embedding(plot_data_df, color_data, dims_to_plot=[0,1,2]):
+
+  import plotly.express as px
 
   fig = px.scatter_3d(plot_data_df,
                       x=dims_to_plot[0], y=dims_to_plot[1], z=dims_to_plot[2],
@@ -45,7 +50,9 @@ def plot_3d_embedding(plot_data_df, color_data, dims_to_plot=[0,1,2]):
 
 
 def plot_umap3d(adata, color, window_height=1000):
-  
+
+    import plotly.express as px
+
     # Generate or use existing 3D UMAP coordinates in obsm; if present, make a backup copy of 2D UMAP coordinates
     if 'X_umap_3d' not in adata.obsm:        
         calc_umap3d = True
