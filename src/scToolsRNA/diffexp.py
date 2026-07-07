@@ -6,11 +6,10 @@ import scanpy as sc
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from pydeseq2.dds import DeseqDataSet
-from pydeseq2.ds import DeseqStats
-from adjustText import adjust_text
+# Heavy / optional third-party imports (pydeseq2, adjustText) are imported lazily
+# inside the functions that use them so that ``import scToolsRNA`` stays fast and
+# does not fail if one of these packages is unavailable.
 
- 
 
 # DIFFERENTIAL EXPRESSION
 
@@ -26,6 +25,9 @@ def get_pydeseq2_sample_contrasts(adata, cluster_obs, sample_obs, condition_obs,
     # condition_obs:    column in adata.obs containing per cell condition assignments (e.g. 'Control', 'Mutant')
     # condition_list:   list specifying condition order for comparisons (e.g. ['Mutant', 'Control']) 
     
+    from pydeseq2.dds import DeseqDataSet
+    from pydeseq2.ds import DeseqStats
+
     # Use a dictionary to store results
     pyDESeq_results = {}
 
@@ -155,6 +157,7 @@ def plot_pydeseq2_cluster_sensitivities(adata, cluster_obs, sample_obs, conditio
     sns.scatterplot(x = list(ratios_df['Ratio']), y = list(power_df['nDEGs']), s=power_df['cluster_size'])
 
      # Add and adjust point labels
+    from adjustText import adjust_text
     point_labels = [plt.annotate(label, (ratios_df['Ratio'][n], power_df['nDEGs'][n])) for n, label in enumerate(power_df.index)]
     adjust_text(point_labels, arrowprops=dict(arrowstyle="-", color='#1f77b4', lw=0.5))
 

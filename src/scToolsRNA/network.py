@@ -1,14 +1,19 @@
 
+import warnings
 import numpy as np
 import scanpy as sc
-import igraph as ig
+
+# igraph is imported lazily inside export_to_graphml so that ``import
+# scToolsRNA`` does not require igraph to be importable at import time.
 
 
 
 # GEPHI IMPORT & EXPORT
 
 
-def export_to_graphml(adata, filename='test.graphml', directed=None):    
+def export_to_graphml(adata, filename='test.graphml', directed=None):
+
+    import igraph as ig
 
     adjacency = adata.obsp['connectivities']
 
@@ -24,9 +29,9 @@ def export_to_graphml(adata, filename='test.graphml', directed=None):
     except:
         pass
     if g.vcount() != adjacency.shape[0]:
-        logg.warn('The constructed graph has only {} nodes. '
-                  'Your adjacency matrix contained redundant nodes.'
-                  .format(g.vcount()))
+        warnings.warn('The constructed graph has only {} nodes. '
+                      'Your adjacency matrix contained redundant nodes.'
+                      .format(g.vcount()))
     g.write_graphml(filename)
 
 
