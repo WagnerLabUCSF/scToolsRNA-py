@@ -24,6 +24,7 @@ import numpy as np
 import pandas as pd
 
 from .knn import knn_search
+from .sparse import normalize_log1p
 
 __all__ = [
     "preprocess_query_counts",
@@ -130,29 +131,8 @@ def preprocess_query_counts(
                 raise ValueError(msg)
             warnings.warn(msg)
 
-    # ---- library-size normalization (TPM-ish) ----
-    if sparse.issparse(X_raw):
-        X_counts = X_raw.tocsr(copy=True)
-        libsize = np.array(X_counts.sum(axis=1)).ravel()
-        scale = np.ones_like(libsize)
-        nz = libsize > 0
-        scale[nz] = target_sum / libsize[nz]
-        X_tpm = sparse.diags(scale) @ X_counts
-    else:
-        X_counts = np.array(X_raw, float, copy=True)
-        libsize = X_counts.sum(axis=1)
-        scale = np.ones_like(libsize)
-        nz = libsize > 0
-        scale[nz] = target_sum / libsize[nz]
-        X_tpm = X_counts * scale[:, None]
-
-    # ---- log1p ----
-    if sparse.issparse(X_tpm):
-        X_tpm = X_tpm.tocsr()
-        X_tpm.data = np.log1p(X_tpm.data)
-        adata.X = X_tpm
-    else:
-        adata.X = np.log1p(X_tpm)
+    # ---- library-size normalization (TPM-ish) + log1p ----
+    adata.X = normalize_log1p(X_raw, target_sum=target_sum)
 
     adata.uns["log1p"] = {"base": None}
     return adata

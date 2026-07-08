@@ -16,9 +16,59 @@ def sparse_corr(X):
   return X_corr
 
 
+def normalize_log1p(X, target_sum=1e6, log=True):
+    """Library-size normalize each cell (row) to ``target_sum``, then ``log1p``.
+
+    Shared low-level implementation of TPM-style (counts-per-``target_sum``)
+    normalization followed by an optional natural-log ``log1p`` transform.
+    Accepts a dense array or a scipy sparse matrix and returns the same kind;
+    the input is not modified. Cells with zero total counts are left as
+    all-zeros (no division).
+
+    Used by :func:`scToolsRNA.pp_raw2norm`, :func:`scToolsRNA.adata2tpt`, and
+    :func:`scToolsRNA.preprocess_query_counts` so the normalization math lives in
+    exactly one place.
+
+    Parameters
+    ----------
+    X : numpy.ndarray or scipy.sparse matrix
+        Raw counts, cells x genes.
+    target_sum : float, default ``1e6``
+        Per-cell library size to scale to. ``1e6`` yields counts-per-million
+        (TPM-scale) values; ``1e4`` yields CP10K.
+    log : bool, default ``True``
+        Apply ``log1p`` after normalization. Pass ``False`` to get the
+        normalized-but-not-logged matrix (e.g. for a ``tpm_nolog`` layer).
+
+    Returns
+    -------
+    numpy.ndarray or scipy.sparse.csr_matrix
+        Normalized (and, if ``log``, log1p-transformed) matrix; sparse in,
+        sparse out.
+    """
+    if scipy.sparse.issparse(X):
+        X = X.tocsr(copy=True).astype(float)
+        libsize = np.asarray(X.sum(axis=1)).ravel()
+        scale = np.ones_like(libsize)
+        nz = libsize > 0
+        scale[nz] = target_sum / libsize[nz]
+        X = (scipy.sparse.diags(scale) @ X).tocsr()
+        if log:
+            X.data = np.log1p(X.data)
+        return X
+
+    X = np.array(X, dtype=float, copy=True)
+    libsize = X.sum(axis=1)
+    scale = np.ones_like(libsize)
+    nz = libsize > 0
+    scale[nz] = target_sum / libsize[nz]
+    X = X * scale[:, None]
+    return np.log1p(X) if log else X
+
+
 def convert_to_sparse(X):
   if not scipy.sparse.issparse(X):
-    X=scipy.sparse.csr_matrix(X)  
+    X=scipy.sparse.csr_matrix(X)
   return X
 
 

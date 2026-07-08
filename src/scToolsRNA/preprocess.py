@@ -13,6 +13,24 @@ import matplotlib.pyplot as plt
 
 
 
+def _ensure_mito_ribo_qc(adata, recompute=False):
+    '''
+    Flag mitochondrial and ribosomal-protein genes and compute their per-cell
+    percentage QC metrics (``pct_counts_mito`` / ``pct_counts_ribo``).
+
+    Shared by ``filter_mito`` and ``filter_ribo`` so the same var flags and
+    ``calculate_qc_metrics`` call are not repeated. Skips recomputation when both
+    metrics are already present in ``adata.obs`` (per-cell metrics are unaffected
+    by the cell-subsetting these filters perform), unless ``recompute=True``.
+    '''
+    have_metrics = {'pct_counts_mito', 'pct_counts_ribo'}.issubset(adata.obs.columns)
+    if have_metrics and not recompute:
+        return
+    adata.var['mito'] = adata.var_names.str.startswith(('mt-', 'MT-'))
+    adata.var['ribo'] = adata.var_names.str.startswith(('RPS', 'rps', 'RPL', 'rpl'))
+    sc.pp.calculate_qc_metrics(adata, qc_vars=['mito', 'ribo'], inplace=True)
+
+
 def get_sampling_stats(adata, groupby=''):
 
     groups = np.unique(adata.obs[groupby])
@@ -100,9 +118,7 @@ def filter_mito(adata, filter_cells=False, upper_threshold=100, lower_threshold=
         library_id = adata.uns['library_id']
 
     # Calculate QC metric for % mitochondrial counts per cell
-    adata.var["mito"] = adata.var_names.str.startswith(('mt-','MT-'))
-    adata.var['ribo'] = adata.var_names.str.startswith(('RPS','rps','RPL','rpl'))
-    sc.pp.calculate_qc_metrics(adata, qc_vars=['mito','ribo'], inplace=True)
+    _ensure_mito_ribo_qc(adata)
     counts = adata.obs['pct_counts_mito']
     ix = np.where((counts > lower_threshold) & (counts < upper_threshold), True, False)
     
@@ -153,9 +169,8 @@ def filter_ribo(adata, filter_cells=False, upper_threshold=100, lower_threshold=
       if 'library_id' in adata.uns:
         library_id = adata.uns['library_id']
 
-    # Calculate QC metric for % mitochondrial counts per cell
-    adata.var['ribo'] = adata.var_names.str.startswith(('RPS','rps','RPL','rpl'))
-    sc.pp.calculate_qc_metrics(adata, qc_vars=['ribo'], inplace=True)
+    # Calculate QC metric for % ribosomal-protein counts per cell
+    _ensure_mito_ribo_qc(adata)
     counts = adata.obs['pct_counts_ribo']
     ix = np.where((counts > lower_threshold) & (counts < upper_threshold), True, False)
     

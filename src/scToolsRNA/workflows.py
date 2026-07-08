@@ -2,36 +2,33 @@
 import scanpy as sc
 import numpy as np
 from .dimensionality import *
+from .sparse import normalize_log1p
 
 
 def adata2tpt(adata):
 
     # Perform TPT Normalization on X matrix of an adata object
     adata_tpt = adata.copy()
-    adata_tpt.X = adata_tpt.layers['raw_nolog']
-    sc.pp.normalize_total(adata_tpt, target_sum=1e4, inplace=True) 
-    sc.pp.log1p(adata_tpt)
-    
-    # Confirm TPT
-    #print(adata_tpt.X.expm1().sum(axis = 1))
-    
+    # CP10K (target_sum=1e4) library-size normalization + log1p via shared helper
+    adata_tpt.X = normalize_log1p(adata_tpt.layers['raw_nolog'], target_sum=1e4)
+    adata_tpt.uns['log1p'] = {'base': None}
+
     return adata_tpt
-    
+
 
 def pp_raw2norm(adata, include_raw_layers=True, include_tpm_layers=True):
-	
+
 	# Store raw counts as separate layer
 	if include_raw_layers: adata.layers['raw_nolog'] = adata.X.copy()
 	if include_raw_layers: adata.layers['raw'] = sc.pp.log1p(adata.X.copy())
-	
-	# Perform total counts normalization (tpm)
-	sc.pp.normalize_total(adata, target_sum=1e6, inplace=True) # TPM Normalization
 
-	# Perform log transformation and store tpm normalized counts in a separate layer
+	# TPM (target_sum=1e6) library-size normalization via shared helper; keep the
+	# un-logged result as the tpm_nolog layer, then log1p for X and the tpm layer.
+	adata.X = normalize_log1p(adata.X, target_sum=1e6, log=False)
 	if include_tpm_layers: adata.layers['tpm_nolog'] = adata.X.copy()
 	sc.pp.log1p(adata)
 	if include_tpm_layers: adata.layers['tpm'] = adata.X.copy()
-	
+
 	# Scale the genes by z-score (no zero center = large sparse matrix-friendly)
 	sc.pp.scale(adata, zero_center=False)
 
