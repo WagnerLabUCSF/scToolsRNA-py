@@ -1,3 +1,19 @@
+"""
+Supervised per-cell classifiers (scikit-learn).
+
+Trains an ensemble of sklearn models (kNN, SVM, decision tree, random forest,
+MLP, naive Bayes, LDA) in a PCA subspace and applies them to new cells.
+
+.. note::
+   For the **k-nearest-neighbor label-transfer** use case specifically —
+   projecting labels from a reference dataset onto a query in a shared
+   embedding — prefer :func:`scToolsRNA.transfer_labels_knn` (in
+   :mod:`scToolsRNA.labeltransfer`). It is the modernized successor to the
+   ``KNeighborsClassifier`` path here: it uses the fast FAISS/scikit-learn
+   backend in :mod:`scToolsRNA.knn`, returns calibrated per-cell confidence
+   scores, and supports distance-weighted voting and class balancing. This
+   module is retained for the broader multi-model train/test workflow.
+"""
 
 import numpy as np
 import sklearn
@@ -41,7 +57,11 @@ def train_classifiers(X, labels, PCs, gene_ind):
     '''
     Trains a series of machine learning classifiers to associate individual cells with class labels.
     Does so in a low-dimensional PCA representation of the data (PCs) over pre-defined genes (gene_ind).
-    '''  
+
+    Note: for pure kNN label transfer from a reference to a query, prefer
+    scToolsRNA.transfer_labels_knn, which is faster (FAISS backend) and returns
+    per-cell confidence scores. This trainer is for the multi-model workflow.
+    '''
 
     # Subset by gene indices; project X into PCA subspace
     X_ind = X[:,gene_ind]
